@@ -1,0 +1,13 @@
+FLUXO DE FUNCIONAMENTO DO SISTEMA
+
+-Frontend → API privada (REST): o frontend só conversa com a API privada, nunca direto com o banco, com o governo ou com o ViaCEP.
+
+-API privada → ViaCEP (HTTP): a consulta de CEP acontece aqui, com o tratamento de CEP inexistente, timeout e indisponibilidade.
+
+-API privada → Banco da clínica: as 10 tabelas do seu MER ficam aqui. É a API que valida o CPF, o microchip e a compatibilidade entre raça e espécie.
+
+-API privada → API do governo (HTTP): é o envio obrigatório da vacina antirrábica. O reenvio das pendências e a chave de idempotência (tabela IntegracaoGov) ficam do lado da API privada.
+
+-API do governo → Banco do governo: é um banco separado, como o PDF exige. Ele não aparece no seu MER, porque guarda os dados do lado do governo (animais por microchip, vacinações recebidas e protocolos). Ele será modelado no Milestone 4.
+
+Onde a autenticação aparece: o login do veterinário e a proteção dos endpoints ficam dentro da API privada, por isso não ganharam uma caixa própria.
