@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import AnimalGoverno, Operacao
 from ..protocolo import gerar_protocolo
-from ..schemas import AnimalCreate, AnimalOut, OperacaoAnimalOut
+from ..schemas import AnimalCreate, AnimalUpdate, AnimalOut, OperacaoAnimalOut
 
 router = APIRouter(prefix="/api/governo/animais", tags=["Animais"])
 
@@ -53,3 +53,34 @@ def consultar_animal(microchip: str, db: Session = Depends(get_db)):
             detail=f"Nenhum animal encontrado com o microchip {microchip}.",
         )
     return animal
+
+@router.put("/{microchip}", response_model=OperacaoAnimalOut)
+def atualizar_animal(
+    microchip: str, dados: AnimalUpdate, db: Session = Depends(get_db)
+):
+    animal = buscar_por_microchip(db, microchip)
+    if not animal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Nenhum animal encontrado com o microchip {microchip}.",
+        )
+
+    for campo, valor in dados.model_dump().items():
+        setattr(animal, campo, valor)
+
+    operacao = Operacao(
+        protocolo=gerar_protocolo(),
+        tipo="ATUALIZACAO_ANIMAL",
+        situacao="concluida",
+        mensagem=f"Dados do animal com microchip {microchip} atualizados.",
+    )
+    db.add(operacao)
+    db.commit()
+    db.refresh(animal)
+
+    return {
+        "protocolo": operacao.protocolo,
+        "situacao": operacao.situacao,
+        "mensagem": operacao.mensagem,
+        "animal": animal,
+    }

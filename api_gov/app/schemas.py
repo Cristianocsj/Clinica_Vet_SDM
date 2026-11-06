@@ -27,3 +27,12 @@ class OperacaoAnimalOut(BaseModel):
     situacao: str
     mensagem: str
     animal: AnimalOut
+
+class AnimalUpdate(BaseModel):
+    nome: str = Field(min_length=1, max_length=100)
+    especie: str = Field(min_length=1, max_length=50)
+    raca: Optional[str] = Field(default=None, max_length=80)
+    sexo: str = Field(pattern=r"^[MF]$")
+    data_nascimento: Optional[date] = None
+    tutor_nome: str = Field(min_length=1, max_length=150)
+    tutor_cpf: str = Field(pattern=r"^\d{11}$")
