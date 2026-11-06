@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from .database import Base, engine
 from . import models  # noqa: F401  (registra as tabelas)
-from .routers import animais
+from .routers import animais, operacoes, vacinacoes
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,6 +14,8 @@ app = FastAPI(
 )
 
 app.include_router(animais.router)
+app.include_router(vacinacoes.router)
+app.include_router(operacoes.router)
 
 
 @app.get("/api/governo/saude", tags=["Saúde"])

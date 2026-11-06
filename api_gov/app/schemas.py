@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AnimalCreate(BaseModel):
@@ -36,3 +36,62 @@ class AnimalUpdate(BaseModel):
     data_nascimento: Optional[date] = None
     tutor_nome: str = Field(min_length=1, max_length=150)
     tutor_cpf: str = Field(pattern=r"^\d{11}$")
+
+class DadosAnimal(BaseModel):
+    nome: str = Field(min_length=1, max_length=100)
+    especie: str = Field(min_length=1, max_length=50)
+    raca: Optional[str] = Field(default=None, max_length=80)
+    sexo: str = Field(pattern=r"^[MF]$")
+    data_nascimento: Optional[date] = None
+    tutor_nome: str = Field(min_length=1, max_length=150)
+    tutor_cpf: str = Field(pattern=r"^\d{11}$")
+
+class DadosVacina(BaseModel):
+    nome_vacina: str = Field(min_length=1, max_length=100)
+    fabricante: str = Field(min_length=1, max_length=100)
+    lote: str = Field(min_length=1, max_length=50)
+    data_aplicacao: date
+
+    @field_validator("data_aplicacao")
+    @classmethod
+    def nao_pode_ser_futura(cls, valor: date) -> date:
+        if valor > date.today():
+            raise ValueError("A data de aplicação não pode estar no futuro.")
+        return valor
+
+class DadosVeterinario(BaseModel):
+    nome: str = Field(min_length=1, max_length=150)
+    crmv: str = Field(min_length=1, max_length=20)
+
+class VacinacaoCreate(BaseModel):
+    microchip: str = Field(pattern=r"^\d{15}$")
+    animal: DadosAnimal
+    vacina: DadosVacina
+    veterinario: DadosVeterinario
+
+class VacinacaoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    nome_vacina: str
+    fabricante: str
+    lote: str
+    data_aplicacao: date
+    veterinario_nome: str
+    veterinario_crmv: str
+
+class OperacaoVacinacaoOut(BaseModel):
+    protocolo: str
+    situacao: str
+    mensagem: str
+    microchip: str
+    animal_criado: bool
+    vacinacao: VacinacaoOut
+
+class OperacaoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    protocolo: str
+    tipo: str
+    situacao: str
+    mensagem: Optional[str]
+    criado_em: datetime
