@@ -2,8 +2,7 @@ from fastapi import FastAPI
 
 from .database import Base, engine
 from . import models  # noqa: F401  (registra as tabelas)
-
-#uvicorn app.main:app --reload --port 8001 == comando para rodar no a aplicação com o venv ativado
+from .routers import animais
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,7 +13,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.include_router(animais.router)
 
-@app.get("/api/governo/saude")
+
+@app.get("/api/governo/saude", tags=["Saúde"])
 def saude():
     return {"status": "ok", "servico": "API do governo (simulada)"}
