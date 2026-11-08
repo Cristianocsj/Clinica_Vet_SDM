@@ -98,4 +98,133 @@ function validarSessao(token) {
     return { id: vet.id, nome: vet.nome, email: vet.email };
 }
 
-module.exports = { login, validarSessao };
+// Logout: o token deixa de valer na hora.
+function encerrarSessao(token) {
+    sessoes.delete(token);
+}
+
+// Derruba todas as sessões de um veterinário (usado ao inativar ou trocar a senha).
+function encerrarSessoesDoVeterinario(idVeterinario) {
+    for (const [token, sessao] of sessoes) {
+        if (sessao.idVeterinario === idVeterinario) sessoes.delete(token);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Confirmação de senha
+// ---------------------------------------------------------------------------
+// O código tem 6 dígitos, vale 15 minutos e é "enviado" pelo console do
+// servidor (simulando o e-mail). No banco fica só o HASH do código.
+
+const VALIDADE_CODIGO_MIN = 15;
+const MAX_TENTATIVAS_CODIGO = 5;
+
+// Tentativas erradas por veterinário: idVeterinario -> quantidade.
+// Ao chegar no limite o código é apagado e é preciso pedir outro.
+const tentativasCodigo = new Map();
+
+const salvarCodigo = db.prepare(`
+    UPDATE VET_VETERINARIO
+       SET VETE_DS_CODIGO_CONFIRMACAO  = ?,
+           VETE_DT_HR_EXPIRACAO_CODIGO = datetime('now', 'localtime', '+${VALIDADE_CODIGO_MIN} minutes')
+     WHERE VETE_ID_VETERINARIO = ?
+`);
+
+const apagarCodigo = db.prepare(`
+    UPDATE VET_VETERINARIO
+       SET VETE_DS_CODIGO_CONFIRMACAO  = NULL,
+           VETE_DT_HR_EXPIRACAO_CODIGO = NULL
+     WHERE VETE_ID_VETERINARIO = ?
+`);
+
+const buscarCodigo = db.prepare(`
+    SELECT VETE_ID_VETERINARIO        AS id,
+           VETE_DS_EMAIL              AS email,
+           VETE_FL_INDICADOR_SENHA    AS senhaConfirmada,
+           VETE_DS_STATUS             AS status,
+           VETE_DS_CODIGO_CONFIRMACAO AS hashCodigo,
+           VETE_DT_HR_EXPIRACAO_CODIGO >= datetime('now', 'localtime') AS dentroDoPrazo
+      FROM VET_VETERINARIO
+     WHERE lower(VETE_DS_EMAIL) = lower(?)
+`);
+
+const marcarSenhaConfirmada = db.prepare(`
+    UPDATE VET_VETERINARIO
+       SET VETE_FL_INDICADOR_SENHA     = 1,
+           VETE_DT_HR_CONFIRMACAO      = datetime('now', 'localtime'),
+           VETE_DS_CODIGO_CONFIRMACAO  = NULL,
+           VETE_DT_HR_EXPIRACAO_CODIGO = NULL
+     WHERE VETE_ID_VETERINARIO = ?
+`);
+
+// Gera um código novo (substitui o anterior) e mostra no console.
+function gerarCodigoConfirmacao(idVeterinario, email) {
+    const codigo = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    salvarCodigo.run(bcrypt.hashSync(codigo, 10), idVeterinario);
+    tentativasCodigo.delete(idVeterinario);
+
+    console.log('==============================================');
+    console.log(' E-MAIL SIMULADO: confirmação de senha');
+    console.log(` Para:   ${email}`);
+    console.log(` Código: ${codigo}  (vale ${VALIDADE_CODIGO_MIN} minutos)`);
+    console.log('==============================================');
+}
+
+// POST /api/auth/reenviar-codigo
+// Sempre responde a mesma coisa, exista o e-mail ou não (não revela cadastros).
+function reenviarCodigo(email) {
+    if (typeof email !== 'string' || !email.trim()) {
+        throw new ErroApi(400, 'DADOS_INVALIDOS', 'Informe o e-mail.');
+    }
+    const vet = buscarCodigo.get(email.trim());
+    if (vet && vet.status === 'ativo' && vet.senhaConfirmada !== 1) {
+        gerarCodigoConfirmacao(vet.id, vet.email);
+    }
+}
+
+// POST /api/auth/confirmar-senha
+function confirmarSenha(email, codigo) {
+    if (typeof email !== 'string' || !email.trim() || typeof codigo !== 'string' || !/^\d{6}$/.test(codigo.trim())) {
+        throw new ErroApi(400, 'DADOS_INVALIDOS', 'Informe o e-mail e o código de 6 dígitos.');
+    }
+
+    const vet = buscarCodigo.get(email.trim());
+    const codigoConfere = bcrypt.compareSync(codigo.trim(), vet?.hashCodigo || HASH_FALSO);
+
+    if (vet && vet.senhaConfirmada === 1) {
+        throw new ErroApi(409, 'SENHA_JA_CONFIRMADA', 'A senha deste veterinário já foi confirmada.');
+    }
+    if (!vet || !vet.hashCodigo || !codigoConfere) {
+        if (vet && vet.hashCodigo) {
+            const tentativas = (tentativasCodigo.get(vet.id) || 0) + 1;
+            tentativasCodigo.set(vet.id, tentativas);
+            if (tentativas >= MAX_TENTATIVAS_CODIGO) {
+                apagarCodigo.run(vet.id);
+                tentativasCodigo.delete(vet.id);
+                throw new ErroApi(400, 'CODIGO_BLOQUEADO',
+                    'Muitas tentativas erradas. Peça um novo código em /api/auth/reenviar-codigo.');
+            }
+        }
+        throw new ErroApi(400, 'CODIGO_INVALIDO', 'Código de confirmação inválido.');
+    }
+    if (vet.status !== 'ativo') {
+        throw new ErroApi(403, 'VETERINARIO_INATIVO', 'Acesso bloqueado: veterinário inativo.');
+    }
+    if (vet.dentroDoPrazo !== 1) {
+        throw new ErroApi(400, 'CODIGO_EXPIRADO',
+            'Código expirado. Peça um novo código em /api/auth/reenviar-codigo.');
+    }
+
+    marcarSenhaConfirmada.run(vet.id);
+    tentativasCodigo.delete(vet.id);
+}
+
+module.exports = {
+    login,
+    validarSessao,
+    encerrarSessao,
+    encerrarSessoesDoVeterinario,
+    gerarCodigoConfirmacao,
+    reenviarCodigo,
+    confirmarSenha,
+};
