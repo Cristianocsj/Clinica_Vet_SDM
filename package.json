@@ -1,5 +1,14 @@
 {
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node api_clinica/server.js",
+    "banco": "node api_clinica/database/iniciarBanco.js",
+    "banco:recriar": "node api_clinica/database/iniciarBanco.js --recriar"
+  },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "express": "^5.3.0"
   }

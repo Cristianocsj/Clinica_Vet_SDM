@@ -180,3 +180,11 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 api_gov/governo.db
+
+# Node
+node_modules/
+
+# Banco da clínica (gerado por "npm run banco")
+database/clinica.db
+database/clinica.db-wal
+database/clinica.db-shm
