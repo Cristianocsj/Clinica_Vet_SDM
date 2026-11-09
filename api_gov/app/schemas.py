@@ -84,7 +84,8 @@ class OperacaoVacinacaoOut(BaseModel):
     situacao: str
     mensagem: str
     microchip: str
-    animal_criado: bool
+    animal_criado: Optional[bool] = None
+    repetida: bool = False
     vacinacao: VacinacaoOut
 
 class OperacaoOut(BaseModel):
@@ -95,3 +96,10 @@ class OperacaoOut(BaseModel):
     situacao: str
     mensagem: Optional[str]
     criado_em: datetime
+
+class VacinacaoCreate(BaseModel):
+    chave_idempotencia: str = Field(min_length=1, max_length=100, examples=["VACINA-1"])
+    microchip: str = Field(pattern=r"^\d{15}$")
+    animal: DadosAnimal
+    vacina: DadosVacina
+    veterinario: DadosVeterinario
