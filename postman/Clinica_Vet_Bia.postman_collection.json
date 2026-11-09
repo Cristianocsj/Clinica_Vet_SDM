@@ -1,0 +1,1525 @@
+{
+  "info": {
+    "name": "Clínica Vet - Bia",
+    "description": "Login (testes 1 a 4), confirmação de senha, logout, veterinários, consultas (teste 9) e vacinas (teste 10).\n\nAntes de rodar:\n1. npm run banco:recriar:demo (o Rex é o animal 1)\n2. npm start\n3. Rodar as pastas em ordem ou a collection inteira no Runner\n\nO Teste 1 salva o token na variável token.\nNa pasta 6 o código aparece no terminal da API. Depois de confirmar, o Teste 3 só volta a dar 403 recriando o banco.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "senhaTeste",
+      "value": "Senha@123"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "animalId",
+      "value": "1"
+    },
+    {
+      "key": "codigo",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login (testes 1 a 4)",
+      "item": [
+        {
+          "name": "Teste 1 - Login do veterinário ativo (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Devolve o token', () => pm.expect(corpo.token).to.be.a('string').and.have.lengthOf(64));",
+                  "pm.collectionVariables.set('token', corpo.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ativo@clinica.test\",\n  \"senha\": \"{{senhaTeste}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 2 - Login do veterinário inativo (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Código VETERINARIO_INATIVO', () => pm.expect(pm.response.json().codigo).to.eql('VETERINARIO_INATIVO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"inativo@clinica.test\",\n  \"senha\": \"{{senhaTeste}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 3 - Login com senha não confirmada (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Código SENHA_NAO_CONFIRMADA', () => pm.expect(pm.response.json().codigo).to.eql('SENHA_NAO_CONFIRMADA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pendente@clinica.test\",\n  \"senha\": \"{{senhaTeste}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 4 - Login com senha incorreta (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Código CREDENCIAIS_INVALIDAS', () => pm.expect(pm.response.json().codigo).to.eql('CREDENCIAIS_INVALIDAS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ativo@clinica.test\",\n  \"senha\": \"senhaErrada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "E-mail não cadastrado (401, mesma resposta do teste 4)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Código CREDENCIAIS_INVALIDAS', () => pm.expect(pm.response.json().codigo).to.eql('CREDENCIAIS_INVALIDAS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"naoexiste@clinica.test\",\n  \"senha\": \"{{senhaTeste}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Proteção das rotas e logout",
+      "item": [
+        {
+          "name": "Rota protegida sem token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Código TOKEN_AUSENTE', () => pm.expect(pm.response.json().codigo).to.eql('TOKEN_AUSENTE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Sessão atual (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('É o veterinário ativo', () => pm.expect(pm.response.json().veterinario.email).to.eql('ativo@clinica.test'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessao"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sessão depois do logout (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Código SESSAO_INVALIDA', () => pm.expect(pm.response.json().codigo).to.eql('SESSAO_INVALIDA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessao"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login de novo (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Devolve o token', () => pm.expect(corpo.token).to.be.a('string').and.have.lengthOf(64));",
+                  "pm.collectionVariables.set('token', corpo.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ativo@clinica.test\",\n  \"senha\": \"{{senhaTeste}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Veterinários (CRUD)",
+      "item": [
+        {
+          "name": "Listar veterinários (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "pm.test('Lista com veterinários', () => pm.expect(lista.length).to.be.at.least(3));",
+                  "pm.test('Nunca devolve hash de senha', () => pm.expect(pm.response.text()).to.not.match(/\\$2[aby]\\$|hash/i));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar só inativos (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Todos inativos', () => pm.response.json().forEach((v) => pm.expect(v.status).to.eql('inativo')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios?status=inativo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "inativo"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar veterinário 1 (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar veterinário inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Código VETERINARIO_NAO_ENCONTRADO', () => pm.expect(pm.response.json().codigo).to.eql('VETERINARIO_NAO_ENCONTRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios",
+                "999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cadastrar com dados inválidos (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"A\",\n  \"cpf\": \"111\",\n  \"crmv\": \"x\",\n  \"ufCrmv\": \"ZZ\",\n  \"email\": \"semarroba\",\n  \"senha\": \"123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cadastrar veterinário (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// gera um CPF válido e dados únicos a cada execução",
+                  "const n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));",
+                  "const dv = (b) => { const s = b.reduce((t, d, i) => t + d * (b.length + 1 - i), 0); const r = (s * 10) % 11; return r >= 10 ? 0 : r; };",
+                  "n.push(dv(n)); n.push(dv(n));",
+                  "const sufixo = Date.now();",
+                  "pm.collectionVariables.set('novoCpf', n.join(''));",
+                  "pm.collectionVariables.set('novoEmail', 'vet' + sufixo + '@clinica.test');",
+                  "pm.collectionVariables.set('novoCrmv', String(sufixo).slice(-8));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const vet = pm.response.json();",
+                  "pm.test('Nasce ativo e com a senha não confirmada', () => { pm.expect(vet.status).to.eql('ativo'); pm.expect(vet.senhaConfirmada).to.eql(false); });",
+                  "pm.test('Não devolve a senha', () => pm.expect(vet).to.not.have.any.keys('senha', 'hashSenha'));",
+                  "pm.collectionVariables.set('vetCriadoId', vet.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios"
+              ]
+            },
+            "description": "CPF, e-mail e CRMV mudam a cada vez que roda, para não dar duplicado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Dra. Maria Souza\",\n  \"cpf\": \"{{novoCpf}}\",\n  \"crmv\": \"{{novoCrmv}}\",\n  \"ufCrmv\": \"RJ\",\n  \"email\": \"{{novoEmail}}\",\n  \"telefone\": \"(21) 99999-0000\",\n  \"senha\": \"maria12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cadastrar o mesmo CPF de novo (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código CPF_JA_CADASTRADO', () => pm.expect(pm.response.json().codigo).to.eql('CPF_JA_CADASTRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Dra. Maria Souza\",\n  \"cpf\": \"{{novoCpf}}\",\n  \"crmv\": \"{{novoCrmv}}\",\n  \"ufCrmv\": \"RJ\",\n  \"email\": \"{{novoEmail}}\",\n  \"senha\": \"maria12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Alterar veterinário (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Nome alterado e telefone limpo', () => { pm.expect(pm.response.json().nome).to.eql('Dra. Maria Souza Lima'); pm.expect(pm.response.json().telefone).to.eql(null); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios/{{vetCriadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios",
+                "{{vetCriadoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Dra. Maria Souza Lima\",\n  \"telefone\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Inativar veterinário (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ficou inativo', () => pm.expect(pm.response.json().status).to.eql('inativo'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios/{{vetCriadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios",
+                "{{vetCriadoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inativar de novo (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código VETERINARIO_JA_INATIVO', () => pm.expect(pm.response.json().codigo).to.eql('VETERINARIO_JA_INATIVO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios/{{vetCriadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios",
+                "{{vetCriadoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inativar a si mesmo (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código AUTO_INATIVACAO', () => pm.expect(pm.response.json().codigo).to.eql('AUTO_INATIVACAO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/veterinarios/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "veterinarios",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Consultas (teste 9)",
+      "item": [
+        {
+          "name": "Teste 9 - Registrar consulta (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const c = pm.response.json();",
+                  "pm.test('Consulta realizada pelo veterinário logado', () => { pm.expect(c.status).to.eql('realizada'); pm.expect(c.veterinarioId).to.eql(1); });",
+                  "pm.collectionVariables.set('consultaId', c.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": \"{{animalId}}\",\n  \"motivo\": \"Vômito há dois dias\",\n  \"sintomas\": \"Vômito e apatia\",\n  \"diagnostico\": \"Gastrite leve\",\n  \"tratamento\": \"Dieta leve por 5 dias\",\n  \"prescricao\": \"Omeprazol 10mg 1x ao dia\",\n  \"peso\": 31.8,\n  \"temperatura\": 39.1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 9 - Histórico de consultas do animal (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const h = pm.response.json();",
+                  "pm.test('Histórico tem a consulta registrada', () => pm.expect(h.consultas.map((c) => c.id)).to.include(Number(pm.collectionVariables.get('consultaId'))));",
+                  "pm.test('Mais recente primeiro', () => { const d = h.consultas.map((c) => c.dataHora); pm.expect(d).to.eql([...d].sort().reverse()); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{animalId}}/consultas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{animalId}}",
+                "consultas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consulta sem motivo (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": \"{{animalId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Consulta com temperatura impossível (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": \"{{animalId}}\",\n  \"motivo\": \"Teste\",\n  \"temperatura\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Consulta para animal inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Código ANIMAL_NAO_ENCONTRADO', () => pm.expect(pm.response.json().codigo).to.eql('ANIMAL_NAO_ENCONTRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": 999999,\n  \"motivo\": \"Teste\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Vacinas (teste 10)",
+      "item": [
+        {
+          "name": "Teste 10 - Registrar vacina comum (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const p = (n) => String(n).padStart(2, '0');",
+                  "const dia = (d) => { const x = new Date(); x.setDate(x.getDate() + d); return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate()); };",
+                  "pm.collectionVariables.set('hoje', dia(0));",
+                  "pm.collectionVariables.set('daqui20dias', dia(20));",
+                  "pm.collectionVariables.set('daqui1ano', dia(365));",
+                  "pm.collectionVariables.set('ontem', dia(-1));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const v = pm.response.json();",
+                  "pm.test('Não é antirrábica e não gera envio ao governo', () => { pm.expect(v.antirrabica).to.eql(false); pm.expect(v.integracaoGov).to.eql(null); });",
+                  "pm.collectionVariables.set('vacinaComumId', v.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": \"{{animalId}}\",\n  \"nome\": \"V10\",\n  \"tipo\": \"polivalente\",\n  \"fabricante\": \"Zoetis\",\n  \"lote\": \"L2026\",\n  \"validadeLote\": \"{{daqui1ano}}\",\n  \"dose\": \"reforço anual\",\n  \"via\": \"subcutânea\",\n  \"proximaDose\": \"{{daqui20dias}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 10 - Registrar vacina antirrábica (201, envio pendente)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const p = (n) => String(n).padStart(2, '0');",
+                  "const dia = (d) => { const x = new Date(); x.setDate(x.getDate() + d); return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate()); };",
+                  "pm.collectionVariables.set('hoje', dia(0));",
+                  "pm.collectionVariables.set('daqui20dias', dia(20));",
+                  "pm.collectionVariables.set('daqui1ano', dia(365));",
+                  "pm.collectionVariables.set('ontem', dia(-1));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const v = pm.response.json();",
+                  "pm.test('É antirrábica', () => pm.expect(v.antirrabica).to.eql(true));",
+                  "pm.test('Envio ao governo ficou PENDENTE', () => pm.expect(v.integracaoGov.situacao).to.eql('pendente'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": \"{{animalId}}\",\n  \"nome\": \"Antirrábica\",\n  \"tipo\": \"raiva\",\n  \"fabricante\": \"MSD\",\n  \"lote\": \"R2026\",\n  \"validadeLote\": \"{{daqui1ano}}\",\n  \"dose\": \"dose única\",\n  \"proximaDose\": \"{{daqui1ano}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 10 - Histórico de vacinas do animal (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const h = pm.response.json();",
+                  "pm.test('Histórico tem a vacina registrada', () => pm.expect(h.vacinas.map((v) => v.id)).to.include(Number(pm.collectionVariables.get('vacinaComumId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{animalId}}/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{animalId}}",
+                "vacinas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Teste 10 - Próximas doses (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('A próxima dose da V10 aparece na lista', () => pm.expect(r.doses.map((d) => d.vacinaId)).to.include(Number(pm.collectionVariables.get('vacinaComumId'))));",
+                  "pm.test('Ordenada por data', () => { const d = r.doses.map((x) => x.dataPrevista); pm.expect(d).to.eql([...d].sort()); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas/proximas-doses?dias=30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas",
+                "proximas-doses"
+              ],
+              "query": [
+                {
+                  "key": "dias",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Vacina aplicada sem lote (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": \"{{animalId}}\",\n  \"nome\": \"V10\",\n  \"tipo\": \"polivalente\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Vacina com lote vencido (400)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const p = (n) => String(n).padStart(2, '0');",
+                  "const dia = (d) => { const x = new Date(); x.setDate(x.getDate() + d); return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate()); };",
+                  "pm.collectionVariables.set('hoje', dia(0));",
+                  "pm.collectionVariables.set('daqui20dias', dia(20));",
+                  "pm.collectionVariables.set('daqui1ano', dia(365));",
+                  "pm.collectionVariables.set('ontem', dia(-1));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": \"{{animalId}}\",\n  \"nome\": \"V10\",\n  \"tipo\": \"polivalente\",\n  \"fabricante\": \"Zoetis\",\n  \"lote\": \"L1\",\n  \"validadeLote\": \"{{ontem}}\",\n  \"dose\": \"1ª dose\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Confirmação de senha (manual)",
+      "description": "Rodar o \"Pedir código\", copiar o código que aparece no terminal da API, colar na variável codigo e rodar o \"Confirmar senha\".",
+      "item": [
+        {
+          "name": "Pedir código para o pendente (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reenviar-codigo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reenviar-codigo"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pendente@clinica.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirmar com código errado (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código CODIGO_INVALIDO', () => pm.expect(pm.response.json().codigo).to.eql('CODIGO_INVALIDO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/confirmar-senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "confirmar-senha"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pendente@clinica.test\",\n  \"codigo\": \"000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirmar senha com o código do terminal (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('codigo')) {",
+                  "    pm.test.skip('Preencha a variável \"codigo\" com o código do terminal da API', () => {});",
+                  "} else {",
+                  "    pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/confirmar-senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "confirmar-senha"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pendente@clinica.test\",\n  \"codigo\": \"{{codigo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

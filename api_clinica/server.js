@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const clinicaRoutes = require('./routes/clinicaRoutes');
+const veterinarioRoutes = require('./routes/veterinarioRoutes');
+const consultaRoutes = require('./routes/consultaRoutes');
+const vacinaRoutes = require('./routes/vacinaRoutes');
 const autenticar = require('./middlewares/autenticar');
 
 const app = express();
@@ -14,6 +17,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // Daqui para baixo, TODA rota /api exige token válido
+app.use('/api/veterinarios', autenticar, veterinarioRoutes);
+app.use('/api', autenticar, consultaRoutes, vacinaRoutes);
 app.use('/api', autenticar, clinicaRoutes);
 
 // Corpo da requisição com JSON mal formado

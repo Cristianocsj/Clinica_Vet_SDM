@@ -3,11 +3,14 @@
 // Uso:
 //   npm run banco            -> cria o que faltar (pode rodar quantas vezes quiser)
 //   npm run banco:recriar    -> apaga o clinica.db e cria tudo do zero
+//   npm run banco:demo       -> igual ao "banco" + dados de demonstração (se não houver tutores)
+//   npm run banco:recriar:demo -> apaga tudo e cria do zero já com os dados de demonstração
 //
 // Passos:
 //   1. clinica_changelog.sql  (tabelas; usa "if not exists", então é seguro repetir)
 //   2. clinica_seed.sql       (espécies e raças; só roda se VET_ESPECIE estiver vazia)
 //   3. veterinários de teste  (senha com hash bcrypt; só cria os que ainda não existem)
+//   4. clinica_demo.sql       (só com --demo; tutores, animais, consultas e vacinas fictícios)
 const fs = require('fs');
 const path = require('path');
 
@@ -72,6 +75,17 @@ const criarVeterinariosTeste = () => transacao(() => {
     return criados;
 });
 console.log(`Veterinários de teste criados: ${criarVeterinariosTeste()}.`);
+
+// 4. (opcional) Dados de demonstração: tutores, animais, consultas e vacinas
+if (process.argv.includes('--demo')) {
+    const qtdTutores = db.prepare('SELECT COUNT(*) AS qtd FROM VET_TUTOR').get().qtd;
+    if (qtdTutores === 0) {
+        transacao(() => db.exec(lerSql('clinica_demo.sql')));
+        console.log('Dados de demonstração inseridos (clinica_demo.sql).');
+    } else {
+        console.log('Já existem tutores no banco; dados de demonstração não foram inseridos.');
+    }
+}
 
 // Resumo
 const tabelas = db.prepare(
