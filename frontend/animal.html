@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ficha do animal - Clínica Vet</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div id="menu"></div>
+<main class="container py-3">
+    <p class="mb-2"><a href="animais.html">&larr; Animais</a></p>
+    <div id="mensagens"></div>
+
+    <!-- Dados do animal -->
+    <div class="card">
+        <div class="card-body" id="dadosAnimal">Carregando...</div>
+    </div>
+
+    <!-- Microchip -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Microchip</span>
+            <button class="btn btn-sm btn-outline-primary" data-abrir="formMicrochip">Vincular / trocar</button>
+        </div>
+        <div class="card-body">
+            <form id="formMicrochip" class="row g-2 mb-3 d-none" novalidate>
+                <div class="col-md-4">
+                    <label class="form-label" for="microchip">Código (15 números) *</label>
+                    <input class="form-control" id="microchip" name="microchip" inputmode="numeric" maxlength="17" placeholder="076000000000001">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label" for="motivo">Motivo da troca <span class="texto-pequeno text-muted">(obrigatório se já tiver chip)</span></label>
+                    <input class="form-control" id="motivo" name="motivo" maxlength="500">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success w-100">Salvar microchip</button>
+                </div>
+                <div class="col-12 form-text">O vínculo fica no nome do veterinário logado.</div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Código</th><th>Situação</th><th>Vinculado em</th><th>Veterinário</th><th>Substituído em</th><th>Motivo</th></tr></thead>
+                    <tbody id="tabelaMicrochips"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Consultas (teste 9) -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Consultas</span>
+            <button class="btn btn-sm btn-outline-primary" data-abrir="formConsulta">Registrar consulta</button>
+        </div>
+        <div class="card-body">
+            <form id="formConsulta" class="mb-3 d-none" novalidate>
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label" for="statusConsulta">Situação</label>
+                        <select class="form-select" id="statusConsulta" name="status">
+                            <option value="realizada">Realizada</option>
+                            <option value="agendada">Agendada</option>
+                            <option value="cancelada">Cancelada</option>
+                            <option value="nao_compareceu">Não compareceu</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="dataHora">Data e hora</label>
+                        <input type="datetime-local" class="form-control" id="dataHora" name="dataHora">
+                        <div class="form-text">Vazio = agora (obrigatória se agendada).</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="motivoConsulta">Motivo *</label>
+                        <input class="form-control" id="motivoConsulta" name="motivo" maxlength="500">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="anamnese">Anamnese</label>
+                        <textarea class="form-control" id="anamnese" name="anamnese" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="sintomas">Sintomas</label>
+                        <textarea class="form-control" id="sintomas" name="sintomas" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="diagnostico">Diagnóstico</label>
+                        <textarea class="form-control" id="diagnostico" name="diagnostico" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="tratamento">Tratamento prescrito</label>
+                        <textarea class="form-control" id="tratamento" name="tratamento" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="prescricao">Medicamentos</label>
+                        <textarea class="form-control" id="prescricao" name="prescricao" rows="2"></textarea>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label" for="pesoConsulta">Peso (kg)</label>
+                        <input class="form-control" id="pesoConsulta" name="peso" inputmode="decimal">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label" for="temperatura">Temperatura (°C)</label>
+                        <input class="form-control" id="temperatura" name="temperatura" inputmode="decimal">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label" for="observacoes">Observações</label>
+                        <input class="form-control" id="observacoes" name="observacoes" maxlength="1000">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success mt-3">Salvar consulta</button>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Data/hora</th><th>Situação</th><th>Motivo</th><th>Diagnóstico</th><th>Tratamento</th><th>Peso</th><th>Temp.</th><th>Veterinário</th></tr></thead>
+                    <tbody id="tabelaConsultas"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vacinas (teste 10) -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Vacinas</span>
+            <button class="btn btn-sm btn-outline-primary" data-abrir="formVacina">Registrar vacina</button>
+        </div>
+        <div class="card-body">
+            <form id="formVacina" class="mb-3 d-none" novalidate>
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label" for="situacaoVacina">Situação</label>
+                        <select class="form-select" id="situacaoVacina" name="situacao">
+                            <option value="aplicada">Aplicada</option>
+                            <option value="agendada">Agendada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="nomeVacina">Nome da vacina *</label>
+                        <input class="form-control" id="nomeVacina" name="nome" maxlength="150" placeholder="V10, Antirrábica...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="tipoVacina">Tipo *</label>
+                        <input class="form-control" id="tipoVacina" name="tipo" maxlength="50" placeholder="polivalente, inativada...">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="antirrabica" name="antirrabica" value="sim">
+                            <label class="form-check-label" for="antirrabica">É antirrábica (aplicada = envio obrigatório ao governo)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="dataAplicacao">Data da aplicação</label>
+                        <input type="date" class="form-control" id="dataAplicacao" name="dataAplicacao">
+                        <div class="form-text">Aplicada: vazio = hoje. Agendada: obrigatória.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="fabricante">Fabricante</label>
+                        <input class="form-control" id="fabricante" name="fabricante" maxlength="100">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="lote">Lote</label>
+                        <input class="form-control" id="lote" name="lote" maxlength="50">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="validadeLote">Validade do lote</label>
+                        <input type="date" class="form-control" id="validadeLote" name="validadeLote">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="dose">Dose / etapa</label>
+                        <input class="form-control" id="dose" name="dose" maxlength="30" placeholder="1ª dose, reforço...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="via">Via de aplicação</label>
+                        <input class="form-control" id="via" name="via" maxlength="30" placeholder="subcutânea">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="proximaDose">Próxima dose</label>
+                        <input type="date" class="form-control" id="proximaDose" name="proximaDose">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="observacoesVacina">Observações</label>
+                        <input class="form-control" id="observacoesVacina" name="observacoes" maxlength="1000">
+                    </div>
+                    <div class="col-12 form-text">Aplicada precisa de fabricante, lote, validade do lote e dose.</div>
+                </div>
+                <button type="submit" class="btn btn-success mt-3">Salvar vacina</button>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Data</th><th>Vacina</th><th>Dose</th><th>Lote</th><th>Próxima dose</th><th>Situação</th><th>Governo</th></tr></thead>
+                    <tbody id="tabelaVacinas"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comunicações com o governo -->
+    <div class="card">
+        <div class="card-header">Envios ao governo deste animal</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Pedido em</th><th>Tipo</th><th>Vacina</th><th>Situação</th><th>Tentativas</th><th>Protocolo</th><th>Mensagem</th><th></th></tr></thead>
+                    <tbody id="tabelaIntegracoes"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/animal.js"></script>
+</body>
+</html>

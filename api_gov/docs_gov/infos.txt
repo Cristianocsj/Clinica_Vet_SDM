@@ -1,0 +1,7 @@
+1- sempre selecionar o interpretador python que está NO VENV DE API_GOV APENAS, trazendo o caminho api_gov\venv\Scripts\python.exe
+
+2- uvicorn app.main:app --reload --port 8001 para rodar a api com isso irá ser gerado o link local http://127.0.0.1:8001 e sempre ponha o /docs para abrir o Swagger
+
+3- versão do python é a 3.10.9 usada no venv de api_gov
+
+4- o requirements está dentro dessa pasta para quem for testar essa aplicação. Quem clonar o repositório roda python -m venv venv, ativa o ambiente e faz pip install -r requirements.txt. O governo.db é recriado sozinho na primeira vez que o servidor rodar.

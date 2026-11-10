@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Espécies e raças - Clínica Vet</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div id="menu"></div>
+<main class="container py-3">
+    <h1 class="h4 mb-3">Espécies e raças</h1>
+    <div id="mensagens"></div>
+
+    <div class="row g-3">
+        <!-- Espécies -->
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header">Espécies</div>
+                <div class="card-body">
+                    <form id="formEspecie" class="row g-2 mb-3" novalidate>
+                        <div class="col-12 texto-pequeno text-muted" id="tituloEspecie">Nova espécie (já ganha a raça "Sem raça definida")</div>
+                        <div class="col-md-5"><input class="form-control" name="nome" maxlength="100" placeholder="Nome *"></div>
+                        <div class="col-md-7"><input class="form-control" name="descricao" maxlength="500" placeholder="Descrição"></div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success btn-sm">Salvar espécie</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="cancelarEspecie">Limpar</button>
+                        </div>
+                    </form>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead><tr><th>Nome</th><th>Situação</th><th></th></tr></thead>
+                            <tbody id="tabelaEspecies"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Raças -->
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header">Raças</div>
+                <div class="card-body">
+                    <form id="formRaca" class="row g-2 mb-3" novalidate>
+                        <div class="col-12 texto-pequeno text-muted" id="tituloRaca">Nova raça</div>
+                        <div class="col-md-4"><select class="form-select" name="especieId" id="especieDaRaca"></select></div>
+                        <div class="col-md-4"><input class="form-control" name="nome" maxlength="100" placeholder="Nome *"></div>
+                        <div class="col-md-4"><input class="form-control" name="descricao" maxlength="500" placeholder="Descrição"></div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success btn-sm">Salvar raça</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="cancelarRaca">Limpar</button>
+                        </div>
+                    </form>
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm w-auto" id="filtroRacas"></select>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead><tr><th>Raça</th><th>Espécie</th><th>Situação</th><th></th></tr></thead>
+                            <tbody id="tabelaRacas"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/especies.js"></script>
+</body>
+</html>

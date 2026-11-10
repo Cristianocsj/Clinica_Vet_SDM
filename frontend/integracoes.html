@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Envios ao governo - Clínica Vet</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div id="menu"></div>
+<main class="container py-3">
+    <h1 class="h4 mb-3">Envios ao governo</h1>
+    <div id="mensagens"></div>
+
+    <div class="alert alert-light border texto-pequeno">
+        Toda vacina <strong>antirrábica aplicada</strong> gera um envio obrigatório à API do governo (simulada).
+        Se o governo estiver fora do ar, a vacina continua registrada e o envio fica <strong>pendente</strong>:
+        use <strong>Reenviar</strong>. O reenvio usa sempre a mesma chave, então o governo não duplica a vacinação.
+        <br>Para testar falhas, abra o Swagger do governo em
+        <a href="http://localhost:8001/docs" target="_blank" rel="noopener">http://localhost:8001/docs</a>
+        e use <code>PUT /api/governo/simulacao</code> (ou desligue a API do governo).
+    </div>
+
+    <form id="formFiltro" class="row g-2 mb-2">
+        <div class="col-8 col-md-3">
+            <select class="form-select" name="situacao">
+                <option value="">Todas</option>
+                <option value="pendente">Pendentes</option>
+                <option value="com_falha">Com falha</option>
+                <option value="enviada">Enviadas</option>
+                <option value="confirmada">Confirmadas</option>
+            </select>
+        </div>
+        <div class="col-4 col-md-2 d-grid">
+            <button class="btn btn-outline-primary" type="submit">Filtrar</button>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>Nº</th><th>Pedido em</th><th>Animal</th><th>Vacina</th><th>Microchip</th><th>Situação</th><th>Tentativas</th><th>Protocolo</th><th>Mensagem</th><th></th></tr></thead>
+                <tbody id="tabelaIntegracoes"><tr><td colspan="10" class="text-center text-muted py-3">Carregando...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/integracoes.js"></script>
+</body>
+</html>
