@@ -140,6 +140,17 @@ Exemplo:
 - Temperatura entre 30 e 45. O peso da consulta atualiza o peso do animal.
 - Animal inativo não recebe consulta nova, mas o histórico dele continua aparecendo.
 
+### Microchips
+
+| Rota | Corpo | Resposta |
+|---|---|---|
+| POST /api/animais/:id/microchip | microchip (texto com 15 dígitos) | 201 com o vínculo criado |
+
+- A rota exige token de veterinário; o responsável pelo vínculo é obtido da sessão, nunca do corpo.
+- O animal precisa existir e só pode ter um microchip ativo.
+- Um código de microchip não pode ser reutilizado, mesmo após uma futura substituição (409 `MICROCHIP_JA_UTILIZADO`).
+- O código precisa conter exatamente 15 dígitos; animal inexistente retorna 404 e animal com chip ativo retorna 409.
+
 ### Vacinas (teste 10)
 
 | Rota | Resposta |
