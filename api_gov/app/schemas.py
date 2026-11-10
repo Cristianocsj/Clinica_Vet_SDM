@@ -9,7 +9,11 @@ class AnimalCreate(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     especie: str = Field(min_length=1, max_length=50)
     raca: Optional[str] = Field(default=None, max_length=80)
-    sexo: str = Field(pattern=r"^[MF]$", examples=["M"])
+    # AVISO (revisão 10/11): sexo passou a ser OPCIONAL (M, F ou vazio) porque a clínica
+    # permite animal sem sexo (ex.: aves). Sem isso a vacina antirrábica desses animais
+    # era recusada (422). Cristiano e João: decidam a regra final e ajustem aqui e no
+    # cadastro de animal da clínica. Ver docs/GUIA_INTEGRACAO_CRISTIANO.md.
+    sexo: Optional[str] = Field(default=None, pattern=r"^[MF]$", examples=["M"])
     data_nascimento: Optional[date] = None
     tutor_nome: str = Field(min_length=1, max_length=150)
     tutor_cpf: str = Field(pattern=r"^\d{11}$", examples=["12345678909"])
@@ -32,7 +36,7 @@ class AnimalUpdate(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     especie: str = Field(min_length=1, max_length=50)
     raca: Optional[str] = Field(default=None, max_length=80)
-    sexo: str = Field(pattern=r"^[MF]$")
+    sexo: Optional[str] = Field(default=None, pattern=r"^[MF]$")  # ver AVISO em AnimalCreate
     data_nascimento: Optional[date] = None
     tutor_nome: str = Field(min_length=1, max_length=150)
     tutor_cpf: str = Field(pattern=r"^\d{11}$")
@@ -41,7 +45,7 @@ class DadosAnimal(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     especie: str = Field(min_length=1, max_length=50)
     raca: Optional[str] = Field(default=None, max_length=80)
-    sexo: str = Field(pattern=r"^[MF]$")
+    sexo: Optional[str] = Field(default=None, pattern=r"^[MF]$")  # ver AVISO em AnimalCreate
     data_nascimento: Optional[date] = None
     tutor_nome: str = Field(min_length=1, max_length=150)
     tutor_cpf: str = Field(pattern=r"^\d{11}$")

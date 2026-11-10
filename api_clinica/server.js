@@ -5,6 +5,10 @@ const clinicaRoutes = require('./routes/clinicaRoutes');
 const veterinarioRoutes = require('./routes/veterinarioRoutes');
 const consultaRoutes = require('./routes/consultaRoutes');
 const vacinaRoutes = require('./routes/vacinaRoutes');
+const tutorRoutes = require('./routes/tutorRoutes');
+const especieRacaRoutes = require('./routes/especieRacaRoutes');
+const animalRoutes = require('./routes/animalRoutes');
+const integracaoRoutes = require('./routes/integracaoRoutes');
 const microchipRoutes = require('./routes/microchipRoutes');
 const autenticar = require('./middlewares/autenticar');
 
@@ -19,7 +23,8 @@ app.use('/api/auth', authRoutes);
 
 // Daqui para baixo, TODA rota /api exige token válido
 app.use('/api/veterinarios', autenticar, veterinarioRoutes);
-app.use('/api', autenticar, consultaRoutes, vacinaRoutes, microchipRoutes);
+app.use('/api', autenticar, consultaRoutes, vacinaRoutes, microchipRoutes,
+    tutorRoutes, especieRacaRoutes, animalRoutes, integracaoRoutes);
 app.use('/api', autenticar, clinicaRoutes);
 
 // Corpo da requisição com JSON mal formado

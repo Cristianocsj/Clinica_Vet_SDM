@@ -1,0 +1,2001 @@
+{
+  "info": {
+    "name": "Clínica Vet - Tutores, animais, microchip e governo",
+    "description": "Tutores (teste 5), CEP (teste 6), espécies, raças, animais, microchip (testes 7 e 8) e envio ao governo (testes 12 a 16).\n\nAntes de rodar:\n1. npm run banco:recriar:demo\n2. npm start (API da clínica, porta 3000)\n3. API do governo rodando (porta 8001)\n4. Internet para o CEP (ViaCEP)\n5. Rodar a coleção inteira no Runner, na ordem (pode rodar várias vezes).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "govUrl",
+      "value": "http://localhost:8001"
+    },
+    {
+      "key": "senhaTeste",
+      "value": "Senha@123"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "cpfNovo",
+      "value": ""
+    },
+    {
+      "key": "sufixo",
+      "value": ""
+    },
+    {
+      "key": "tutorId",
+      "value": ""
+    },
+    {
+      "key": "especieId",
+      "value": ""
+    },
+    {
+      "key": "racaId",
+      "value": ""
+    },
+    {
+      "key": "animalId",
+      "value": ""
+    },
+    {
+      "key": "animalAtivoId",
+      "value": ""
+    },
+    {
+      "key": "integracaoId",
+      "value": ""
+    },
+    {
+      "key": "chipNovo",
+      "value": ""
+    },
+    {
+      "key": "chipOutro",
+      "value": ""
+    },
+    {
+      "key": "outroAnimalId",
+      "value": ""
+    },
+    {
+      "key": "integracao2Id",
+      "value": ""
+    },
+    {
+      "key": "protocolo",
+      "value": ""
+    },
+    {
+      "key": "chave",
+      "value": ""
+    },
+    {
+      "key": "hoje",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Login",
+      "item": [
+        {
+          "name": "Login do veterinário ativo (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ativo@clinica.test\",\n  \"senha\": \"{{senhaTeste}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Tutores (teste 5)",
+      "item": [
+        {
+          "name": "Teste 5 - Cadastrar tutor (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// CPF novo e válido a cada execução (assim a coleção pode rodar várias vezes)",
+                  "const n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));",
+                  "for (const t of [9, 10]) {",
+                  "    let soma = 0;",
+                  "    for (let i = 0; i < t; i++) soma += n[i] * (t + 1 - i);",
+                  "    n.push((soma * 10) % 11 % 10);",
+                  "}",
+                  "pm.collectionVariables.set('cpfNovo', n.join(''));",
+                  "pm.collectionVariables.set('sufixo', String(Date.now()).slice(-6));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const t = pm.response.json();",
+                  "pm.test('CPF gravado só com números', () => pm.expect(t.cpf).to.eql(pm.collectionVariables.get('cpfNovo')));",
+                  "pm.test('Endereço salvo junto', () => pm.expect(t.endereco.cidade).to.eql('São Paulo'));",
+                  "pm.collectionVariables.set('tutorId', t.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Tutor Postman\",\n  \"cpf\": \"{{cpfNovo}}\",\n  \"telefone\": \"(11) 91234-5678\",\n  \"email\": \"tutor@postman.test\",\n  \"dataNascimento\": \"1990-05-20\",\n  \"endereco\": {\n    \"cep\": \"01001-000\",\n    \"logradouro\": \"Praça da Sé\",\n    \"numero\": \"25\",\n    \"bairro\": \"Sé\",\n    \"cidade\": \"São Paulo\",\n    \"uf\": \"SP\",\n    \"codigoIbge\": \"3550308\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 5 - Cadastrar o mesmo CPF de novo (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código CPF_JA_CADASTRADO', () => pm.expect(pm.response.json().codigo).to.eql('CPF_JA_CADASTRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro Tutor\",\n  \"cpf\": \"{{cpfNovo}}\",\n  \"endereco\": {\n    \"cep\": \"01001-000\",\n    \"logradouro\": \"Praça da Sé\",\n    \"numero\": \"25\",\n    \"bairro\": \"Sé\",\n    \"cidade\": \"São Paulo\",\n    \"uf\": \"SP\",\n    \"codigoIbge\": \"3550308\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "CPF com dígito errado (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));",
+                  "pm.test('Fala do CPF', () => pm.expect(pm.response.json().mensagem).to.include('cpf'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro Tutor\",\n  \"cpf\": \"529.982.247-26\",\n  \"endereco\": {\n    \"cep\": \"01001-000\",\n    \"logradouro\": \"Praça da Sé\",\n    \"numero\": \"25\",\n    \"bairro\": \"Sé\",\n    \"cidade\": \"São Paulo\",\n    \"uf\": \"SP\",\n    \"codigoIbge\": \"3550308\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Sem endereço (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro Tutor\",\n  \"cpf\": \"39053344705\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Alterar só o telefone (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Telefone novo e endereço mantido', () => { const t = pm.response.json(); pm.expect(t.telefone).to.eql('(11) 3333-4444'); pm.expect(t.endereco.numero).to.eql('25'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores/{{tutorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "{{tutorId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefone\": \"(11) 3333-4444\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Buscar tutores por nome (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Acha o tutor cadastrado', () => pm.expect(pm.response.json().map((t) => t.id)).to.include(Number(pm.collectionVariables.get('tutorId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores?busca=Postman",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ],
+              "query": [
+                {
+                  "key": "busca",
+                  "value": "Postman"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Tutor inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Código TUTOR_NAO_ENCONTRADO', () => pm.expect(pm.response.json().codigo).to.eql('TUTOR_NAO_ENCONTRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "999999"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. CEP (teste 6)",
+      "item": [
+        {
+          "name": "Teste 6 - CEP válido (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Endereço do ViaCEP', () => { const e = pm.response.json(); pm.expect(e.logradouro).to.eql('Praça da Sé'); pm.expect(e.uf).to.eql('SP'); pm.expect(e.ibge).to.eql('3550308'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cep/01001000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cep",
+                "01001000"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Teste 6 - CEP inexistente (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Avisa que não encontrou', () => pm.expect(pm.response.json().mensagem).to.include('não encontrado'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cep/99999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cep",
+                "99999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "CEP com menos de 8 números (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cep/123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cep",
+                "123"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Espécies e raças",
+      "item": [
+        {
+          "name": "Listar espécies ativas (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tem Cão, Gato e Ave', () => pm.expect(pm.response.json().map((e) => e.nome)).to.include.members(['Cão', 'Gato', 'Ave']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/especies?situacao=ativo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "especies"
+              ],
+              "query": [
+                {
+                  "key": "situacao",
+                  "value": "ativo"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cadastrar espécie (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('especieId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/especies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Coelho {{sufixo}}\",\n  \"descricao\": \"Oryctolagus cuniculus\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Espécie nova já tem 'Sem raça definida' (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sem raça definida', () => pm.expect(pm.response.json().map((r) => r.nome)).to.eql(['Sem raça definida']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/racas?especieId={{especieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "racas"
+              ],
+              "query": [
+                {
+                  "key": "especieId",
+                  "value": "{{especieId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cadastrar raça (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('racaId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/racas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "racas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mini Lop\",\n  \"especieId\": {{especieId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mesma raça na mesma espécie (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código RACA_JA_CADASTRADA', () => pm.expect(pm.response.json().codigo).to.eql('RACA_JA_CADASTRADA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/racas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "racas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"mini lop\",\n  \"especieId\": {{especieId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Animais",
+      "item": [
+        {
+          "name": "Cadastrar animal com data de nascimento (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const a = pm.response.json();",
+                  "pm.test('Tutor e raça certos', () => { pm.expect(a.tutor.id).to.eql(Number(pm.collectionVariables.get('tutorId'))); pm.expect(a.racaNome).to.eql('Mini Lop'); });",
+                  "pm.collectionVariables.set('animalId', a.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Tico\",\n  \"tutorId\": {{tutorId}},\n  \"especieId\": {{especieId}},\n  \"racaId\": {{racaId}},\n  \"sexo\": \"M\",\n  \"cor\": \"Branco\",\n  \"peso\": 1.8,\n  \"dataNascimento\": \"2024-05-10\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cadastrar animal com idade estimada (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const a = pm.response.json();",
+                  "pm.test('Data marcada como estimada', () => pm.expect(a.nascimentoEstimado).to.eql(true));",
+                  "pm.collectionVariables.set('animalAtivoId', a.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Teco\",\n  \"tutorId\": {{tutorId}},\n  \"especieId\": 1,\n  \"racaId\": null,\n  \"idadeAnos\": 2,\n  \"idadeMeses\": 6\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Raça de outra espécie (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código RACA_INCOMPATIVEL', () => pm.expect(pm.response.json().codigo).to.eql('RACA_INCOMPATIVEL'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Errado\",\n  \"tutorId\": {{tutorId}},\n  \"especieId\": 1,\n  \"racaId\": {{racaId}},\n  \"dataNascimento\": \"2024-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Sem data e sem idade (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Errado\",\n  \"tutorId\": {{tutorId}},\n  \"especieId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Tutor inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Código TUTOR_NAO_ENCONTRADO', () => pm.expect(pm.response.json().codigo).to.eql('TUTOR_NAO_ENCONTRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Errado\",\n  \"tutorId\": 999999,\n  \"especieId\": 1,\n  \"dataNascimento\": \"2024-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Alterar o animal (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Nome novo', () => pm.expect(pm.response.json().nome).to.eql('Tico II'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{animalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{animalId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Tico II\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ficha do animal (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tem microchips e envios ao governo', () => { const a = pm.response.json(); pm.expect(a.microchips).to.be.an('array'); pm.expect(a.integracoesGov).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{animalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{animalId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Animais do tutor (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Os dois animais', () => pm.expect(pm.response.json()).to.have.lengthOf(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais?tutorId={{tutorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais"
+              ],
+              "query": [
+                {
+                  "key": "tutorId",
+                  "value": "{{tutorId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inativar animal (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ficou inativo', () => pm.expect(pm.response.json().situacao).to.eql('inativo'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{animalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{animalId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Alterar animal inativo (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código ANIMAL_INATIVO', () => pm.expect(pm.response.json().codigo).to.eql('ANIMAL_INATIVO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{animalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{animalId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"X\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Envio ao governo (ponte mínima, testes 12 e 13)",
+      "item": [
+        {
+          "name": "Teste 13 - Vacina comum não gera envio (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Sem envio ao governo', () => pm.expect(pm.response.json().integracaoGov).to.eql(null));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": {{animalAtivoId}},\n  \"nome\": \"V10\",\n  \"tipo\": \"polivalente\",\n  \"fabricante\": \"Zoetis\",\n  \"lote\": \"PM1\",\n  \"validadeLote\": \"2030-01-01\",\n  \"dose\": \"1ª dose\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 12 - Antirrábica aplicada gera envio pendente (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const v = pm.response.json();",
+                  "pm.test('Envio pendente', () => pm.expect(v.integracaoGov.situacao).to.eql('pendente'));",
+                  "pm.collectionVariables.set('integracaoId', v.integracaoGov.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": {{animalAtivoId}},\n  \"nome\": \"Antirrábica\",\n  \"tipo\": \"inativada\",\n  \"fabricante\": \"Zoetis\",\n  \"lote\": \"PM2\",\n  \"validadeLote\": \"2030-01-01\",\n  \"dose\": \"dose única\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar envios pendentes (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Aparece na lista', () => pm.expect(pm.response.json().map((i) => i.id)).to.include(Number(pm.collectionVariables.get('integracaoId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integracoes?situacao=pendente",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "integracoes"
+              ],
+              "query": [
+                {
+                  "key": "situacao",
+                  "value": "pendente"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Enviar sem microchip: fica pendente (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const i = pm.response.json();",
+                  "pm.test('Continua pendente, sem gastar tentativa', () => { pm.expect(i.situacao).to.eql('pendente'); pm.expect(i.tentativas).to.eql(0); pm.expect(i.mensagem).to.include('microchip'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integracoes/{{integracaoId}}/enviar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "integracoes",
+                "{{integracaoId}}",
+                "enviar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Envio inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Código INTEGRACAO_NAO_ENCONTRADA', () => pm.expect(pm.response.json().codigo).to.eql('INTEGRACAO_NAO_ENCONTRADA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integracoes/999999/enviar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "integracoes",
+                "999999",
+                "enviar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Microchip e envio completo (testes 7, 8, 12, 14, 15 e 16)",
+      "item": [
+        {
+          "name": "Teste 7 - Vincular microchip (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Microchips novos a cada execução (o mesmo código nunca pode ser reusado)",
+                  "const doze = () => Array.from({ length: 12 }, () => Math.floor(Math.random() * 10)).join('');",
+                  "pm.collectionVariables.set('chipNovo', '076' + doze());",
+                  "pm.collectionVariables.set('chipOutro', '076' + doze());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Chip ativo no animal', () => { const m = pm.response.json(); pm.expect(m.microchip).to.eql(pm.collectionVariables.get('chipNovo')); pm.expect(m.situacao).to.eql('ativo'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{animalAtivoId}}/microchip",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{animalAtivoId}}",
+                "microchip"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"microchip\": \"{{chipNovo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cadastrar outro animal para o teste 8 (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('outroAnimalId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Toco\",\n  \"tutorId\": {{tutorId}},\n  \"especieId\": 1,\n  \"dataNascimento\": \"2023-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 8 - Mesmo microchip em outro animal (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código MICROCHIP_JA_UTILIZADO', () => pm.expect(pm.response.json().codigo).to.eql('MICROCHIP_JA_UTILIZADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{outroAnimalId}}/microchip",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{outroAnimalId}}",
+                "microchip"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"microchip\": \"{{chipNovo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Animal que já tem microchip (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código ANIMAL_JA_POSSUI_MICROCHIP', () => pm.expect(pm.response.json().codigo).to.eql('ANIMAL_JA_POSSUI_MICROCHIP'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{animalAtivoId}}/microchip",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{animalAtivoId}}",
+                "microchip"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"microchip\": \"{{chipOutro}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Microchip com 14 números (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Código DADOS_INVALIDOS', () => pm.expect(pm.response.json().codigo).to.eql('DADOS_INVALIDOS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/animais/{{outroAnimalId}}/microchip",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "animais",
+                "{{outroAnimalId}}",
+                "microchip"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"microchip\": \"07600000000001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 12 - Enviar a antirrábica que esperava o chip (200, confirmada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const i = pm.response.json();",
+                  "pm.test('Confirmada pelo governo, com protocolo', () => { pm.expect(i.situacao).to.eql('confirmada'); pm.expect(i.protocolo).to.match(/^GOV-/); });",
+                  "pm.collectionVariables.set('protocolo', i.protocolo);",
+                  "pm.collectionVariables.set('chave', i.chaveIdempotencia);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integracoes/{{integracaoId}}/enviar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "integracoes",
+                "{{integracaoId}}",
+                "enviar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Teste 14 - Governo fora do ar (simulação no governo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{govUrl}}/api/governo/simulacao",
+              "host": [
+                "{{govUrl}}"
+              ],
+              "path": [
+                "api",
+                "governo",
+                "simulacao"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"indisponivel\": true,\n  \"erro_validacao\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 14 - Nova antirrábica (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('integracao2Id', pm.response.json().integracaoGov.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"animalId\": {{animalAtivoId}},\n  \"nome\": \"Antirrábica\",\n  \"tipo\": \"inativada\",\n  \"fabricante\": \"Zoetis\",\n  \"lote\": \"PM3\",\n  \"validadeLote\": \"2030-01-01\",\n  \"dose\": \"reforço\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 14 - Envio fica pendente, a vacina continua registrada (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const i = pm.response.json();",
+                  "pm.test('Pendente, 1 tentativa, governo indisponível', () => { pm.expect(i.situacao).to.eql('pendente'); pm.expect(i.tentativas).to.eql(1); pm.expect(i.mensagem).to.include('indisponível'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integracoes/{{integracao2Id}}/enviar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "integracoes",
+                "{{integracao2Id}}",
+                "enviar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Teste 15 - Governo volta (simulação desligada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{govUrl}}/api/governo/simulacao",
+              "host": [
+                "{{govUrl}}"
+              ],
+              "path": [
+                "api",
+                "governo",
+                "simulacao"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"indisponivel\": false,\n  \"erro_validacao\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 15 - Reenvio confirma (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const i = pm.response.json();",
+                  "pm.test('Confirmada na 2ª tentativa', () => { pm.expect(i.situacao).to.eql('confirmada'); pm.expect(i.tentativas).to.eql(2); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integracoes/{{integracao2Id}}/enviar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "integracoes",
+                "{{integracao2Id}}",
+                "enviar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Teste 16 - Mesma chave de novo no governo (200, sem duplicar)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Data de hoje no horário do computador (o governo não aceita data futura)",
+                  "const d = new Date();",
+                  "const p = (n) => String(n).padStart(2, '0');",
+                  "pm.collectionVariables.set('hoje', `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Repetida, com o mesmo protocolo', () => { pm.expect(r.repetida).to.eql(true); pm.expect(r.protocolo).to.eql(pm.collectionVariables.get('protocolo')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{govUrl}}/api/governo/vacinacoes-antirrabicas",
+              "host": [
+                "{{govUrl}}"
+              ],
+              "path": [
+                "api",
+                "governo",
+                "vacinacoes-antirrabicas"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chave_idempotencia\": \"{{chave}}\",\n  \"microchip\": \"{{chipNovo}}\",\n  \"animal\": {\n    \"nome\": \"Teco\",\n    \"especie\": \"Cão\",\n    \"tutor_nome\": \"Tutor Postman\",\n    \"tutor_cpf\": \"{{cpfNovo}}\"\n  },\n  \"vacina\": {\n    \"nome_vacina\": \"Antirrábica\",\n    \"fabricante\": \"Zoetis\",\n    \"lote\": \"PM2\",\n    \"data_aplicacao\": \"{{hoje}}\"\n  },\n  \"veterinario\": {\n    \"nome\": \"Ana Teste\",\n    \"crmv\": \"SP-10001\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Teste 16 - A clínica não reenvia o que já foi confirmado (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código INTEGRACAO_JA_CONFIRMADA', () => pm.expect(pm.response.json().codigo).to.eql('INTEGRACAO_JA_CONFIRMADA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integracoes/{{integracaoId}}/enviar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "integracoes",
+                "{{integracaoId}}",
+                "enviar"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Próximas doses - Clínica Vet</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div id="menu"></div>
+<main class="container py-3">
+    <h1 class="h4 mb-3">Próximas doses de vacina</h1>
+    <div id="mensagens"></div>
+    <p class="texto-pequeno text-muted">Doses atrasadas e previstas até a data escolhida, mais as vacinas agendadas.
+        Para registrar uma vacina, abra a ficha do animal.</p>
+
+    <form id="formFiltro" class="row g-2 mb-2">
+        <div class="col-8 col-md-3">
+            <div class="input-group">
+                <span class="input-group-text">Próximos</span>
+                <input type="number" class="form-control" name="dias" value="30" min="0" max="365">
+                <span class="input-group-text">dias</span>
+            </div>
+        </div>
+        <div class="col-4 col-md-2 d-grid">
+            <button class="btn btn-outline-primary" type="submit">Filtrar</button>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="card-header" id="resumo">Carregando...</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>Data prevista</th><th>Situação</th><th>Animal</th><th>Vacina</th><th>Origem</th><th>Tutor</th><th>Contato</th></tr></thead>
+                <tbody id="tabelaDoses"></tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/vacinas.js"></script>
+</body>
+</html>

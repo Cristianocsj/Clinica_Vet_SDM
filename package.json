@@ -4,6 +4,7 @@
   },
   "scripts": {
     "start": "node api_clinica/server.js",
+    "front": "node frontend/servidor.js",
     "banco": "node api_clinica/database/iniciarBanco.js",
     "banco:recriar": "node api_clinica/database/iniciarBanco.js --recriar",
     "banco:demo": "node api_clinica/database/iniciarBanco.js --demo",

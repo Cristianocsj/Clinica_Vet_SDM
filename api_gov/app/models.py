@@ -15,7 +15,9 @@ class AnimalGoverno(Base):
     nome: Mapped[str] = mapped_column(String(100))
     especie: Mapped[str] = mapped_column(String(50))
     raca: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
-    sexo: Mapped[str] = mapped_column(String(1))
+    # AVISO (revisão 10/11): sexo opcional, ver o comentário em schemas.py (AnimalCreate).
+    # Quem já tinha um governo.db antigo precisa apagar o arquivo para a coluna ser recriada.
+    sexo: Mapped[Optional[str]] = mapped_column(String(1), nullable=True)
     data_nascimento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     tutor_nome: Mapped[str] = mapped_column(String(150))
     tutor_cpf: Mapped[str] = mapped_column(String(11))

@@ -79,7 +79,7 @@ api_gov/
 | nome | texto (100) | |
 | especie | texto (50) | texto livre |
 | raca | texto (80) | opcional, texto livre |
-| sexo | texto (1) | M ou F |
+| sexo | texto (1) | M, F ou vazio (opcional desde a revisão de 10/11, ver AVISO em `schemas.py`) |
 | data_nascimento | data | opcional |
 | tutor_nome | texto (150) | |
 | tutor_cpf | texto (11) | |
@@ -235,7 +235,8 @@ primeira vez.
 1. **Microchip único.** Dois animais não podem ter o mesmo microchip (409).
 2. **Validação dos dados de entrada.**
    - Microchip com exatamente 15 números.
-   - Sexo M ou F.
+   - Sexo M ou F, ou vazio. **Aviso (revisão 10/11):** o sexo ficou opcional porque a
+     clínica aceita animal sem sexo (ex.: aves). Falta o grupo decidir a regra final.
    - CPF com 11 números (a conferência dos dígitos não foi implementada).
    - Data de aplicação da vacina não pode estar no futuro.
    - Campos obrigatórios preenchidos.

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Início - Clínica Vet</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div id="menu"></div>
+<main class="container py-3">
+    <h1 class="h4 mb-3">Início</h1>
+    <div id="mensagens"></div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <a class="card text-decoration-none h-100" href="tutores.html">
+                <div class="card-body"><div class="text-muted texto-pequeno">Tutores ativos</div><div class="fs-3" id="qtdTutores">-</div></div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a class="card text-decoration-none h-100" href="animais.html">
+                <div class="card-body"><div class="text-muted texto-pequeno">Animais ativos</div><div class="fs-3" id="qtdAnimais">-</div></div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a class="card text-decoration-none h-100" href="vacinas.html">
+                <div class="card-body"><div class="text-muted texto-pequeno">Doses atrasadas</div><div class="fs-3 text-danger" id="qtdAtrasadas">-</div></div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a class="card text-decoration-none h-100" href="integracoes.html">
+                <div class="card-body"><div class="text-muted texto-pequeno">Envios ao governo pendentes ou com falha</div><div class="fs-3 text-warning" id="qtdPendencias">-</div></div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Próximas doses (próximos 30 dias e atrasadas)</div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead><tr><th>Data prevista</th><th>Situação</th><th>Animal</th><th>Vacina</th><th>Tutor</th><th>Telefone</th></tr></thead>
+                <tbody id="tabelaDoses">
+                    <tr><td colspan="6" class="text-center text-muted py-3">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/painel.js"></script>
+</body>
+</html>
