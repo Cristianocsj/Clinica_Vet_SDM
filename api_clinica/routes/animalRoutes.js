@@ -1,4 +1,4 @@
-// Rotas de animais. Todas exigem token (o server.js aplica o middleware autenticar).
+
 // O histórico de consultas e de vacinas fica nas rotas da Bia:
 //   GET /api/animais/:id/consultas  e  GET /api/animais/:id/vacinas
 const express = require('express');
