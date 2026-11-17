@@ -1,319 +1,452 @@
-# Guia da integração com o governo (Cristiano)
-
-Revisão de 10/11, atualizada depois do seu push do vínculo de microchip.
-Este guia mostra o que já liga a API da clínica à API do governo e o que falta na sua parte.
-Todo o código abaixo foi testado com as duas APIs rodando, em cima do seu `microchipService.js`.
-
-## 0. O que já funciona
-
-```text
-Vínculo de microchip (seu push)        ->  POST /api/animais/:id/microchip   { "microchip": "076000000000001" }
-
-Vacina antirrábica APLICADA            (vacinaService, da Bia)
-  └─ cria linha "pendente" em VET_INTEGRACAO_GOV, com uma chave de idempotência
-
-Botão "Enviar/Reenviar" no frontend   ->  POST /api/integracoes/:id/enviar
-  └─ integracaoService.enviar()        ->  POST http://localhost:8001/api/governo/vacinacoes-antirrabicas
-       └─ confirma o protocolo         ->  GET  http://localhost:8001/api/governo/operacoes/{protocolo}
+# API do Governo (simulada) e integração com a clínica: documentação
+ 
+Projeto A3 SDM, Sistema de Clínica Veterinária. Responsável: Cristiano.
+Última atualização: 16/11/2026.
+ 
+> Esta API é uma **simulação acadêmica**. Não é uma integração oficial com
+> sistemas governamentais reais e usa apenas dados fictícios.
+ 
+## 1. Visão geral
+ 
+A API do governo é um serviço independente que simula um registro nacional de
+animais identificados por microchip. Ela recebe da clínica:
+ 
+- o cadastro e a atualização de animais;
+- as vacinações antirrábicas, que o enunciado torna de comunicação obrigatória;
+e devolve um **protocolo** de processamento para cada operação.
+ 
+Ela tem banco de dados próprio (`governo.db`), separado do banco da clínica, e
+se comunica com a API da clínica apenas por HTTP. O lado da clínica (vínculo e
+troca de microchip, criação das pendências, envio e reenvio) está descrito na
+seção 9.
+ 
+## 2. Tecnologias
+ 
+| Item | Tecnologia |
+|---|---|
+| Linguagem | Python 3.10 |
+| Framework | FastAPI |
+| Servidor | Uvicorn |
+| Banco de dados | SQLite (`governo.db`) |
+| Acesso ao banco | SQLAlchemy |
+| Validação dos dados | Pydantic |
+| Documentação interativa | Swagger (`/docs`) |
+| Endereço local | `http://localhost:8001` |
+ 
+A API da clínica, que conversa com esta, é Node.js (Express) na porta 3000. O
+endereço do governo usado por ela vem da variável `GOV_API_URL` (padrão
+`http://localhost:8001/api/governo`).
+ 
+## 3. Como executar
+ 
+Na pasta `api_gov`:
+ 
 ```
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8001
+```
+ 
+- Swagger: `http://localhost:8001/docs`
+- Teste de saúde: `http://localhost:8001/api/governo/saude`
+- O arquivo `governo.db` é criado automaticamente na primeira execução e não
+  é versionado (está no `.gitignore`).
+- `Base.metadata.create_all()` cria tabelas ausentes, mas não migra tabelas
+  existentes. Se um banco antigo tiver `sexo` como obrigatório, faça backup e
+  migre/recrie esse banco local para aceitar o campo opcional. SQLite não
+  aplica os limites declarados em `VARCHAR`; os limites também são validados
+  pelos schemas da API.
+- Para gerar o `requirements.txt` no Windows, use o Prompt de Comando (`cmd`):
+  `pip freeze > requirements.txt`. No PowerShell o arquivo sai em UTF-16.
+## 4. Estrutura de arquivos
+ 
+```
+api_gov/
+├── app/
+│   ├── __init__.py
+│   ├── database.py       conexão com o governo.db
+│   ├── models.py         tabelas do banco
+│   ├── schemas.py        formato e validação dos dados de entrada e saída
+│   ├── protocolo.py      geração do número de protocolo
+│   ├── simulacao.py      chaves de simulação de falhas
+│   ├── main.py           criação da API, middleware e registro das rotas
+│   └── routers/
+│       ├── __init__.py
+│       ├── animais.py        cadastro, consulta e atualização de animal
+│       ├── vacinacoes.py     recebimento de vacinação antirrábica
+│       └── operacoes.py      consulta de operação por protocolo
+├── requirements.txt
+└── governo.db            (gerado, não versionado)
+```
+ 
+## 5. Banco de dados (`governo.db`)
+ 
+### `animal_governo`
+| Coluna | Tipo | Observação |
+|---|---|---|
+| id | inteiro | chave primária |
+| microchip | texto (15) | **único**, identifica o animal |
+| nome | texto (100) | |
+| especie | texto (100) | texto livre |
+| raca | texto (100) | opcional, texto livre |
+| sexo | texto (1) | **opcional**: M, F ou vazio (a clínica aceita animal sem sexo informado, como aves) |
+| data_nascimento | data | opcional |
+| tutor_nome | texto (150) | |
+| tutor_cpf | texto (11) | |
+| criado_em | data e hora | |
+| atualizado_em | data e hora | atualiza a cada alteração |
+ 
+### `operacao`
+Registra cada pedido recebido e o protocolo gerado.
+ 
+| Coluna | Tipo | Observação |
+|---|---|---|
+| id | inteiro | chave primária |
+| protocolo | texto (30) | **único** |
+| chave_idempotencia | texto (100) | única; usada em cadastros, atualizações e vacinações para idempotência |
+| tipo | texto (30) | CADASTRO_ANIMAL, ATUALIZACAO_ANIMAL ou VACINACAO_ANTIRRABICA |
+| situacao | texto (20) | sempre `concluida`: só operações processadas com sucesso são gravadas |
+| mensagem | texto (255) | descrição do resultado |
+| criado_em | data e hora | |
+ 
+### `vacinacao_antirrabica`
+| Coluna | Tipo | Observação |
+|---|---|---|
+| id | inteiro | chave primária |
+| animal_id | inteiro | chave estrangeira para `animal_governo` |
+| operacao_id | inteiro | chave estrangeira para `operacao` |
+| nome_vacina | texto (150) | |
+| fabricante | texto (100) | |
+| lote | texto (50) | |
+| data_aplicacao | data | |
+| veterinario_nome | texto (150) | |
+| veterinario_crmv | texto (20) | |
+ 
+**Tamanhos alinhados com a clínica.** O governo aceita pelo menos o que a
+clínica aceita (espécie 100, raça 100, nome da vacina 150), para nunca recusar
+com 422 um dado que a clínica considera válido.
+ 
+## 6. Endpoints
+ 
+| Método | Rota | Função |
+|---|---|---|
+| GET | `/api/governo/saude` | Verifica se a API está no ar |
+| POST | `/api/governo/animais` | Cadastra um animal |
+| GET | `/api/governo/animais/{microchip}` | Consulta um animal pelo microchip |
+| PUT | `/api/governo/animais/{microchip}` | Atualiza os dados de um animal |
+| POST | `/api/governo/vacinacoes-antirrabicas` | Recebe uma vacinação antirrábica |
+| GET | `/api/governo/operacoes/{protocolo}` | Consulta uma operação pelo protocolo |
+| GET | `/api/governo/simulacao` | Mostra o estado da simulação de falhas |
+| PUT | `/api/governo/simulacao` | Liga ou desliga a simulação de falhas |
+ 
+### 6.1 Cadastrar animal
+`POST /api/governo/animais`
+ 
+```json
+{
+  "chave_idempotencia": "CADASTRO-1",
+  "microchip": "985112345678901",
+  "nome": "Rex",
+  "especie": "Cão",
+  "raca": "Labrador",
+  "sexo": "M",
+  "data_nascimento": "2022-03-15",
+  "tutor_nome": "Maria Silva",
+  "tutor_cpf": "12345678909"
+}
+```
+ 
+| Código | Quando |
+|---|---|
+| 201 | Animal novo cadastrado. Retorna o protocolo e os dados do animal |
+| 200 | Microchip já existia e os dados foram sincronizados, ou a mesma chave foi reenviada |
+| 409 | A chave de idempotência foi usada em outra operação ou não corresponde ao animal encontrado |
+| 422 | Dados inválidos (por exemplo, microchip sem 15 números) |
 
-- A sua rota já está ligada no `server.js` e na tela (ficha do animal → "Vincular / trocar"). Testes 7 e 8 passam.
-- Com o chip vinculado, a antirrábica chega no governo e volta `confirmada` (testes 12, 14, 15 e 16 passam pela tela e pelo Postman).
-- Ponte: `api_clinica/services/integracaoService.js` e `api_clinica/routes/integracaoRoutes.js`.
-
+`chave_idempotencia` é obrigatória. Se o microchip já existir, a API sincroniza
+os dados no registro existente e responde 200; não cria um segundo animal.
+ 
+### 6.2 Consultar animal
+`GET /api/governo/animais/{microchip}`
+ 
+| Código | Quando |
+|---|---|
+| 200 | Retorna os dados do animal |
+| 404 | Nenhum animal com esse microchip |
+ 
+### 6.3 Atualizar animal
+`PUT /api/governo/animais/{microchip}`
+ 
+O corpo exige `chave_idempotencia` e os mesmos dados cadastrais do animal. O
+campo `novo_microchip` é opcional; quando enviado, o registro localizado pelo
+microchip da rota recebe o novo chip e preserva as vacinações relacionadas.
+Cada atualização nova gera um protocolo; reenviar a mesma chave devolve o
+resultado anterior.
+ 
+| Código | Quando |
+|---|---|
+| 200 | Animal atualizado. Retorna o novo protocolo e os dados |
+| 404 | Nenhum animal com esse microchip |
+| 409 | O novo microchip já pertence a outro animal ou a chave foi usada em outra operação |
+| 422 | Dados inválidos |
+ 
+### 6.4 Receber vacinação antirrábica
+`POST /api/governo/vacinacoes-antirrabicas`
+ 
+```json
+{
+  "chave_idempotencia": "3f2b8c1e-9d4a-4b7e-8a61-5c0d2e7f9a10",
+  "microchip": "985000000000001",
+  "animal": {
+    "nome": "Mel",
+    "especie": "Gato",
+    "raca": "Siamês",
+    "sexo": "F",
+    "data_nascimento": "2021-08-10",
+    "tutor_nome": "João Pereira",
+    "tutor_cpf": "98765432100"
+  },
+  "vacina": {
+    "nome_vacina": "Antirrábica Inativada",
+    "fabricante": "Zoetis",
+    "lote": "L2026-045",
+    "data_aplicacao": "2026-11-04"
+  },
+  "veterinario": {
+    "nome": "Dra. Ana Lima",
+    "crmv": "RJ-12345"
+  }
+}
+```
+ 
+Resposta (201):
+ 
+```json
+{
+  "protocolo": "GOV-20261116-A1B2C3D4",
+  "situacao": "concluida",
+  "mensagem": "Vacinação antirrábica registrada. O animal não estava cadastrado e foi criado automaticamente.",
+  "microchip": "985000000000001",
+  "animal_criado": true,
+  "repetida": false,
+  "vacinacao": { "...": "dados da vacinação gravada" }
+}
+```
+ 
+| Código | Quando |
+|---|---|
+| 201 | Vacinação registrada, com o protocolo (`repetida: false`) |
+| 200 | Solicitação repetida (mesma `chave_idempotencia`): devolve o **mesmo protocolo**, sem gravar nada novo (`repetida: true`) |
+| 422 | Dados inválidos (campo faltando, chave ausente, data futura, microchip inválido) |
+ 
+A `chave_idempotencia` é obrigatória. A clínica a gera **uma única vez** (um
+UUID), quando cria a pendência, e a usa **em todas as tentativas de envio da
+mesma vacina**. Em uma repetição, o governo ignora os demais campos e devolve
+o resultado da primeira vez.
+ 
+### 6.5 Consultar operação
+`GET /api/governo/operacoes/{protocolo}`
+ 
+| Código | Quando |
+|---|---|
+| 200 | Retorna tipo, situação, mensagem e data da operação |
+| 404 | Nenhuma operação com esse protocolo |
+ 
+## 7. Regras implementadas no governo
+ 
+1. **Microchip único.** Dois animais não podem ter o mesmo microchip (409).
+2. **Validação dos dados de entrada.**
+   - Microchip com exatamente 15 números.
+   - Sexo M ou F, quando informado (é opcional).
+   - CPF com 11 números (a conferência dos dígitos não foi implementada).
+   - Data de aplicação da vacina não pode estar no futuro.
+   - Campos obrigatórios preenchidos, respeitando os tamanhos da seção 5.
+3. **Protocolo de processamento.** Toda operação processada com sucesso gera um protocolo no formato
+   `GOV-AAAAMMDD-XXXXXXXX`, onde as letras finais são sorteadas.
+4. **Comunicação independente do cadastro prévio.** Se a vacinação chega para
+   um microchip que ainda não existe, o animal é **criado automaticamente**
+   com os dados da mensagem (exigência do enunciado). Se o animal já existe,
+   os dados dele **não são sobrescritos**: a alteração é feita pelo PUT.
+5. **Gravação única.** O animal, a operação e a vacinação são gravados juntos.
+   Se algo falhar no meio, nada fica gravado.
+6. **Confiança nos dados da clínica.** Espécie e raça são texto livre. A
+   validação de que a raça combina com a espécie é responsabilidade da
+   clínica, para o governo não recusar um animal válido quando o catálogo da
+   clínica crescer.
+7. **Idempotência.** Cadastros, atualizações e vacinações recebem uma
+   `chave_idempotencia` única por operação. Repetir a mesma chave e operação
+   devolve o protocolo anterior sem criar nova operação. A clínica gera uma
+   chave diferente para cada integração e não deve reutilizá-la entre tipos de
+   operação. Um cadastro com uma nova chave e um microchip já existente
+   sincroniza os dados no registro existente e responde 200; não cria um
+   segundo animal.
+## 8. Simulação de falhas
+ 
+Para demonstrar o tratamento de falhas de comunicação (testes 14 e 15 do
+enunciado), a API consegue "fingir" que está fora do ar ou que recusou os
+dados.
+ 
+Corpo do `PUT /api/governo/simulacao`:
+ 
+```json
+{"indisponivel": false, "erro_validacao": false}
+```
+ 
+| indisponivel | erro_validacao | Resultado |
+|---|---|---|
+| false | false | Funcionamento normal |
+| true | false | Rotas de negócio respondem **503**; Swagger e simulação continuam disponíveis |
+| false | true | POST e PUT respondem **422** simulado; GET continua normal |
+| true | true | O **503** prevalece |
+ 
+**Como funciona:** o middleware `simular_falhas` (em `app/main.py`) roda antes
+das rotas e consulta o estado guardado em `app/simulacao.py`. Se uma falha
+está ligada, ele responde o erro direto e a rota de negócio não é executada,
+então nada é gravado durante a falha. As rotas de simulação e o Swagger nunca
+são bloqueados.
+ 
+**Observações**
+- O estado fica na memória: reiniciar a API (inclusive o `--reload` ao salvar
+  um arquivo) volta tudo para "disponível".
+- Desligar o servidor de verdade também simula a queda. Nesse caso a clínica
+  recebe erro de conexão em vez de 503.
+## 9. Integração com a clínica
+ 
+A API do governo e a da clínica **não compartilham banco nem chaves
+estrangeiras**. O que liga os dois lados é o número do microchip e as
+mensagens HTTP.
+ 
+| Clínica | Governo | Relação |
+|---|---|---|
+| Vínculo de microchip ativo (`VET_VINCULO_MICROCHIP`) | `animal_governo.microchip` | Mesmo número nos dois lados |
+| Animal, Espécie, Raça e Tutor | `animal_governo` | A clínica copia os dados na mensagem |
+| Vacina e Veterinário | `vacinacao_antirrabica` | A clínica copia os dados na mensagem |
+| `VET_INTEGRACAO_GOV` (chave de idempotência) | `operacao.chave_idempotencia` | Mesma chave nos dois lados, em todas as tentativas |
+| `VET_INTEGRACAO_GOV` (protocolo externo) | `operacao.protocolo` | O governo devolve, a clínica guarda |
+| `VET_INTEGRACAO_GOV` (situação, tentativas, erro) | (não existe) | Só a clínica controla |
+ 
+### 9.1 Microchip
+ 
+- **Vínculo** (`POST /api/animais/:id/microchip`): o código tem 15 números, o
+  veterinário vem da sessão e o animal só pode ter um microchip ativo.
+- **Código não reutilizável:** um microchip já usado é recusado (409
+  `MICROCHIP_JA_UTILIZADO`), **inclusive um chip que tenha sido substituído**.
+- **Troca com motivo:** se o animal já tem chip, a troca exige o `motivo`. O
+  chip anterior passa para `substituido`, com data e motivo, e o novo vira o
+  ativo. O histórico do chip anterior é preservado.
+- **Migração do banco:** `VET_INTEGRACAO_GOV` passou a guardar o **chip da
+  operação** e o **chip anterior**. Quem já tinha o `clinica.db` local deve
+  parar a API e rodar `npm run banco` na raiz do projeto antes de iniciá-la.
+  Esse comando adiciona as colunas sem recriar o banco. Não use
+  `npm run banco:recriar:demo` se quiser preservar os dados locais.
+### 9.2 Quando nasce uma pendência de envio
+ 
+| Evento na clínica | Operação criada |
+|---|---|
+| Primeiro microchip vinculado ao animal | `CADASTRO_ANIMAL` |
+| Dados do animal alterados (animal com chip) | `ATUALIZACAO_ANIMAL` |
+| Troca de microchip | `ATUALIZACAO_ANIMAL` |
+| Vacina antirrábica **aplicada** | `VACINACAO_ANTIRRABICA` |
+| Vacina comum, ou antirrábica só agendada | nenhuma (teste 13) |
+ 
+Toda pendência nasce `pendente`, com uma chave de idempotência (UUID) gerada
+uma única vez.
+ 
+Antes de enviar uma atualização ou vacinação, a clínica aguarda a confirmação
+de qualquer operação anterior de cadastro ou atualização daquele animal.
+Enquanto ela não for confirmada, a seguinte permanece pendente sem envio.
+ 
+### 9.3 Envio e situações
+ 
+O envio sai por `POST /api/integracoes/:id/enviar` (botão **Enviar/Reenviar**
+da tela "Governo") e pelo reenvio automático. A troca de chip é enviada como
+`ATUALIZACAO_ANIMAL`, usando o chip anterior para localizar o animal no governo
+e, na troca, informa o chip novo pelo campo `novo_microchip` do PUT.
+ 
+**Se o governo responder 404 na atualização da troca** (o chip anterior não
+existe lá), a clínica tenta cadastrar o animal com o chip novo pela rota normal
+`POST /api/governo/animais`.
+ 
 | O governo respondeu | Situação na clínica | Conta tentativa? |
 |---|---|---|
-| Animal sem microchip ativo (nem chamou o governo) | `pendente`, com o aviso "Aguardando vínculo de microchip" | não |
+| Animal sem microchip ativo (o governo nem é chamado) | `pendente`, com o aviso "Aguardando vínculo de microchip" | não |
 | 201 ou 200 com protocolo, e a consulta do protocolo deu `concluida` | `confirmada` | sim |
-| 201/200, mas a consulta do protocolo falhou | `enviada` (enviar de novo confirma) | sim |
-| Sem resposta, timeout de 5 s ou 5xx (ex.: 503 simulado) | `pendente` | sim |
-| 4xx (ex.: 422) | `com_falha`, com a mensagem do governo | sim |
-
-- Todas as tentativas usam a **mesma chave de idempotência**: o governo devolve o mesmo protocolo e não duplica (teste 16).
-- O endereço do governo vem de `GOV_API_URL` (padrão `http://localhost:8001/api/governo`).
-- Na sua documentação está "200/201 → confirmada". A ponte passa por `enviada` e consulta o protocolo
-  para chegar em `confirmada`, porque o enunciado pede as quatro situações (pendente, enviada, confirmada, com falha).
-
-**O que falta é com você:** troca de chip (passo 1), reenvio automático (passo 2) e cadastro/atualização do animal no governo (passo 3).
-
----
-
-## Passo 1. Troca de microchip (enunciado 3.7, regra 5)
-
-Hoje a sua rota responde 409 `ANIMAL_JA_POSSUI_MICROCHIP` quando o animal já tem chip. O enunciado pede que a
-substituição guarde o chip antigo no histórico. A tela já manda `{ "microchip": "...", "motivo": "..." }` na troca.
-São 4 mudanças no seu `api_clinica/services/microchipService.js`:
-
-**1.1** Depois do `sqlVinculoAtivo`, acrescente:
-
-```js
-const sqlSubstituir = db.prepare(`
-    UPDATE VET_VINCULO_MICROCHIP
-       SET VIMI_DS_SITUACAO            = 'substituido',
-           VIMI_DT_SUBSTITUICAO        = datetime('now', 'localtime'),
-           VIMI_DS_MOTIVO_SUBSTITUICAO = ?
-     WHERE VIMI_ID_VINCULO = ?
-`);
-```
-
-**1.2** Troque a função `exigirMicrochipDisponivel` por esta (ela passa a devolver o chip que vai ser substituído):
-
-```js
-// Devolve o vínculo ativo que vai ser substituído (ou undefined no primeiro chip)
-function exigirMicrochipDisponivel(animalId, microchip, motivo) {
-    if (sqlMicrochipExistente.get(microchip)) {
-        throw new ErroApi(409, 'MICROCHIP_JA_UTILIZADO',
-            'Este microchip já foi vinculado e não pode ser reutilizado.');
-    }
-    const ativo = sqlVinculoAtivo.get(animalId);
-    if (ativo && !motivo) {
-        throw new ErroApi(409, 'ANIMAL_JA_POSSUI_MICROCHIP',
-            'Este animal já possui um microchip ativo. Para trocar, informe o motivo.');
-    }
-    return ativo;
-}
-```
-
-**1.3** Em `vincular`, logo depois da linha do `microchip`:
-
-```js
-    const motivo = v.texto(erros, corpo, 'motivo', { max: 500 });
-```
-
-**1.4** Ainda em `vincular`, o `transacao` e o `catch` ficam assim:
-
-```js
-        vinculoId = transacao(() => {
-            const ativo = exigirMicrochipDisponivel(animalId, microchip, motivo);
-            if (ativo) sqlSubstituir.run(motivo, ativo.VIMI_ID_VINCULO);
-            return Number(sqlInserir.run(animalId, idVeterinario, microchip).lastInsertRowid);
-        });
-    } catch (erro) {
-        if (erro.errcode !== 2067) throw erro;
-
-        exigirMicrochipDisponivel(animalId, microchip, motivo);
-```
-
-**1.5** Na tela (`frontend/js/animal.js`, envio do formulário de microchip), o aviso especial do erro
-`ANIMAL_JA_POSSUI_MICROCHIP` ("a troca ainda não foi feita na API") pode sair: deixe só `mostrarMensagem(erro.message);`.
-
-**Como testar** (ficha do animal no frontend, ou Postman com o token):
-
-| Requisição | Esperado |
+| 201 ou 200, mas a consulta do protocolo falhou | `enviada` (enviar de novo confirma) | sim |
+| Sem resposta, timeout de 5 s ou 5xx (por exemplo, 503 simulado) | `pendente` | sim |
+| 4xx (por exemplo, 422) | `com_falha`, com a mensagem do governo | sim |
+ 
+A ponte passa por `enviada` e consulta o protocolo antes de marcar
+`confirmada`, porque o enunciado pede as quatro situações: pendente, enviada,
+confirmada e com falha.
+ 
+### 9.4 Reenvio automático
+ 
+- A cada **1 minuto**, a clínica tenta enviar o que está `pendente` (ou
+  `enviada` sem confirmação).
+- Cada tentativa soma 1 em `qtd_tentativas`. O botão **Enviar/Reenviar**
+  também faz uma tentativa e incrementa o contador.
+- Depois de **5 tentativas** sem sucesso, a integração passa para `com_falha`
+  e o automático para. Dali em diante só o botão tenta de novo.
+- Os cadastros (`CADASTRO_ANIMAL`) são enviados antes dos demais.
+- Animal **sem microchip** fica esperando, **sem gastar tentativa**, e é
+  enviado assim que o chip for vinculado.
+- Um erro 4xx (por exemplo, 422) leva direto a `com_falha`, porque repetir os
+  mesmos dados daria o mesmo erro.
+- Para testar sem esperar minutos, a duração do intervalo pode ser reduzida
+  temporariamente no arquivo `api_clinica/services/reenvioAutomatico.js`.
+### 9.5 Idempotência no reenvio
+ 
+Todas as tentativas de uma mesma vacina usam a **mesma chave**. Se o governo
+recebeu a mensagem mas a resposta se perdeu, o reenvio devolve o mesmo
+protocolo e **não duplica** a vacinação (teste 16).
+ 
+## 10. Testes
+ 
+### 10.1 API do governo (direto no Swagger)
+ 
+| Teste | Resultado esperado |
 |---|---|
-| `POST /api/animais/1/microchip` com `{ "microchip": "076000000000011" }` | 201 |
-| Outro chip no animal 1, sem `motivo` | 409, pede o motivo |
-| Outro chip no animal 1 com `"motivo": "chip parou de ler"` | 201; na ficha o antigo aparece como `substituído`, com data e motivo |
-| O chip antigo em outro animal | 409 `MICROCHIP_JA_UTILIZADO` (nunca é reutilizado) |
-
----
-
-## Passo 2. Reenvio automático (1 minuto, 5 tentativas), pronto
-
-**2.1** Crie o arquivo `api_clinica/services/reenvioAutomatico.js`:
-
-```js
-// Reenvio automático das comunicações com o governo.
-// A cada 1 minuto tenta enviar o que está "pendente" (ou "enviada" sem confirmação).
-// Depois de 5 tentativas sem sucesso, vira "com_falha" e só sai pelo botão "Reenviar".
-// Vacina de animal sem microchip fica esperando SEM gastar tentativa.
-const { db } = require('../database/conexao');
-const integracaoService = require('./integracaoService');
-
-const INTERVALO_MS = 60 * 1000;
-const MAX_TENTATIVAS = 5;
-
-const sqlParaEnviar = db.prepare(`
-    SELECT ig.INGO_ID_INTEGRACAO AS id
-      FROM VET_INTEGRACAO_GOV ig
-     WHERE ig.INGO_DS_SITUACAO IN ('pendente', 'enviada')
-       AND ig.INGO_DS_TIPO_OPERACAO = 'VACINACAO_ANTIRRABICA'
-       AND EXISTS (SELECT 1 FROM VET_VINCULO_MICROCHIP mc
-                    WHERE mc.ANIM_ID_ANIMAL = ig.ANIM_ID_ANIMAL AND mc.VIMI_DS_SITUACAO = 'ativo')
-     ORDER BY ig.INGO_DT_HR_SOLICITACAO
-`);
-
-const sqlDesistir = db.prepare(`
-    UPDATE VET_INTEGRACAO_GOV
-       SET INGO_DS_SITUACAO = 'com_falha',
-           INGO_DS_MSG_ERRO = 'Reenvio automático parou depois de ' || INGO_QT_TENTATIVAS
-                              || ' tentativas. Use o botão Reenviar. Último erro: ' || coalesce(INGO_DS_MSG_ERRO, '-')
-     WHERE INGO_ID_INTEGRACAO = ? AND INGO_DS_SITUACAO = 'pendente' AND INGO_QT_TENTATIVAS >= ?
-`);
-
-let rodando = false;
-
-async function rodarUmaVez() {
-    if (rodando) return; // não deixa duas rodadas ao mesmo tempo
-    rodando = true;
-    try {
-        for (const { id } of sqlParaEnviar.all()) {
-            const resultado = await integracaoService.enviar(id);
-            if (resultado.situacao === 'pendente') sqlDesistir.run(id, MAX_TENTATIVAS);
-            console.log(`[reenvio automático] envio ${id}: ${resultado.situacao} (tentativas: ${resultado.tentativas})`);
-        }
-    } catch (erro) {
-        console.error('[reenvio automático] erro:', erro.message);
-    } finally {
-        rodando = false;
-    }
-}
-
-function iniciar() {
-    console.log(`Reenvio automático ligado: a cada ${INTERVALO_MS / 1000} s, até ${MAX_TENTATIVAS} tentativas.`);
-    setInterval(rodarUmaVez, INTERVALO_MS);
-}
-
-module.exports = { iniciar, rodarUmaVez };
-```
-
-**2.2** No `api_clinica/server.js`, ligue o reenvio quando a API subir:
-
-```js
-app.listen(PORTA, () => {
-    console.log(`API da Clínica rodando na porta ${PORTA}`);
-    require('./services/reenvioAutomatico').iniciar();
-});
-```
-
-**Como testar sem esperar 5 minutos:** troque `60 * 1000` por `5 * 1000` só enquanto testa.
-
-1. No Swagger do governo (`http://localhost:8001/docs`), `PUT /api/governo/simulacao` com `{"indisponivel": true, "erro_validacao": false}`.
-2. Registre uma antirrábica num animal **com microchip** (ficha do animal no frontend).
-3. No terminal da API aparece `[reenvio automático] envio N: pendente (tentativas: 1)` ... até 5. Depois disso fica `com_falha` (teste 14).
-4. Volte a simulação para `false` e clique em **Reenviar** na tela "Governo": fica `confirmada` (teste 15).
-5. Animal **sem** chip: o envio fica `pendente` com 0 tentativas e vai sozinho assim que o chip for vinculado.
-
----
-
-## Passo 3. Cadastro e atualização do animal no governo (teste 11)
-
-O enunciado pede "cadastro e atualização de animal na API governamental". O governo já tem
-`POST /animais` e `PUT /animais/{microchip}`; falta a clínica mandar. Os trechos abaixo funcionaram
-nos testes (com os passos 1 e 2 já feitos), mas **antes leia as decisões em aberto** no fim deste passo.
-
-**3.1** Em `integracaoService.js`, função `montarChamada`, acrescente os dois tipos:
-
-```js
-    if (d.tipo === 'CADASTRO_ANIMAL') {
-        return { metodo: 'POST', caminho: '/animais', corpo: { microchip: d.microchip, ...montarAnimal(d) } };
-    }
-    if (d.tipo === 'ATUALIZACAO_ANIMAL') {
-        return { metodo: 'PUT', caminho: `/animais/${d.microchip}`, corpo: montarAnimal(d) };
-    }
-```
-
-**3.2** Ainda em `integracaoService.js`, a vacinação e a atualização esperam o cadastro do animal ser confirmado
-(regra combinada pelo grupo: "a clínica cadastra o animal antes de enviar"). Junto dos outros `db.prepare`:
-
-```js
-const sqlCadastroNaoConfirmado = db.prepare(`
-    SELECT 1 FROM VET_INTEGRACAO_GOV
-     WHERE ANIM_ID_ANIMAL = ? AND INGO_DS_TIPO_OPERACAO = 'CADASTRO_ANIMAL' AND INGO_DS_SITUACAO <> 'confirmada'
-`);
-const sqlAguardarCadastro = db.prepare(`
-    UPDATE VET_INTEGRACAO_GOV
-       SET INGO_DS_MSG_ERRO = 'Aguardando o cadastro do animal no governo (CADASTRO_ANIMAL) ser confirmado.'
-     WHERE INGO_ID_INTEGRACAO = ?
-`);
-```
-
-E na função `enviar`, logo depois do bloco `if (!d.microchip) { ... }`:
-
-```js
-    if (d.tipo !== 'CADASTRO_ANIMAL' && sqlCadastroNaoConfirmado.get(d.animalId)) {
-        sqlAguardarCadastro.run(id);
-        return buscar(id);
-    }
-```
-
-**3.3** No seu `microchipService.js`, crie a pendência de cadastro no **primeiro** chip.
-No topo: `const crypto = require('crypto');` e junto dos `db.prepare`:
-
-```js
-const sqlCriarPendencia = db.prepare(`
-    INSERT INTO VET_INTEGRACAO_GOV (ANIM_ID_ANIMAL, INGO_DS_TIPO_OPERACAO, INGO_DS_CHAVE_IDEMPOTENCIA)
-    VALUES (?, ?, ?)
-`);
-```
-
-O `transacao` do `vincular` (já com o passo 1) fica assim:
-
-```js
-        vinculoId = transacao(() => {
-            const ativo = exigirMicrochipDisponivel(animalId, microchip, motivo);
-            if (ativo) sqlSubstituir.run(motivo, ativo.VIMI_ID_VINCULO);
-            const id = Number(sqlInserir.run(animalId, idVeterinario, microchip).lastInsertRowid);
-            // primeiro chip: o animal precisa ser cadastrado no governo
-            if (!ativo) sqlCriarPendencia.run(animalId, 'CADASTRO_ANIMAL', crypto.randomUUID());
-            return id;
-        });
-```
-
-**3.4** Item 6 do João (dados alterados → avisar o governo), em `animalService.js`.
-No topo: `const crypto = require('crypto');` e junto dos `db.prepare`:
-
-```js
-const sqlAtualizacaoEmAberto = db.prepare(`
-    SELECT 1 FROM VET_INTEGRACAO_GOV
-     WHERE ANIM_ID_ANIMAL = ? AND INGO_DS_TIPO_OPERACAO = 'ATUALIZACAO_ANIMAL'
-       AND INGO_DS_SITUACAO IN ('pendente', 'com_falha')
-`);
-const sqlCriarPendencia = db.prepare(`
-    INSERT INTO VET_INTEGRACAO_GOV (ANIM_ID_ANIMAL, INGO_DS_TIPO_OPERACAO, INGO_DS_CHAVE_IDEMPOTENCIA)
-    VALUES (?, ?, ?)
-`);
-```
-
-Na função `alterar`, logo depois do `sqlAlterar.run(...)`:
-
-```js
-    if (atual.microchip && !sqlAtualizacaoEmAberto.get(atual.id)) {
-        sqlCriarPendencia.run(atual.id, 'ATUALIZACAO_ANIMAL', crypto.randomUUID());
-    }
-```
-
-**3.5** Em `reenvioAutomatico.js` (passo 2), envie todos os tipos, com os cadastros primeiro.
-Apague a linha `AND ig.INGO_DS_TIPO_OPERACAO = 'VACINACAO_ANTIRRABICA'` e troque o `ORDER BY` por:
-
-```sql
-     ORDER BY CASE ig.INGO_DS_TIPO_OPERACAO WHEN 'CADASTRO_ANIMAL' THEN 0 ELSE 1 END,
-              ig.INGO_DT_HR_SOLICITACAO
-```
-
-**Como testar:** vincule um chip → aparece `CADASTRO_ANIMAL` e fica `confirmada` (o animal aparece em
-`GET /api/governo/animais/{chip}`). Altere o nome do animal → `ATUALIZACAO_ANIMAL` confirmada e o nome muda no governo.
-
-**Decisões em aberto (combinem antes de fechar o passo 3):**
-
-1. **Troca de chip no governo.** O grupo decidiu mandar a troca como `ATUALIZACAO_ANIMAL`, mas hoje o `PUT /animais/{microchip}`
-   do governo não troca o microchip (ele vem na rota). Opções: (a) o PUT do governo aceitar um campo `novo_microchip`;
-   ou (b) a troca virar um `CADASTRO_ANIMAL` com o chip novo. Por isso o 3.3 só trata o **primeiro** chip.
-2. **Cadastro repetido.** Se o governo já tiver o chip (por exemplo, uma vacinação enviada antes do passo 3 cria o animal
-   sozinha), o `POST /animais` responde 409 e a ponte marca `com_falha`. Decidam se 409 conta como "já cadastrado".
-3. **Tutor alterado.** Mudar nome/CPF do tutor também muda dados que o governo guarda. Hoje só a alteração do animal gera aviso.
-
----
-
-## Avisos da revisão (10/11)
-
-| Onde | O quê | O que fazer |
+| Cadastrar animal novo | 201 com protocolo |
+| Cadastrar o mesmo microchip com uma nova chave | 200, sincroniza os dados sem criar outro animal |
+| Repetir cadastro com a mesma chave | 200, devolve o mesmo protocolo |
+| Reutilizar chave de idempotência em outro tipo de operação | 409 |
+| Cadastrar com microchip inválido | 422 |
+| Consultar animal existente | 200 |
+| Consultar microchip inexistente | 404 |
+| Atualizar animal | 200 com novo protocolo |
+| Vacinação antirrábica com microchip novo | 201, animal criado automaticamente |
+| Vacinação antirrábica com microchip já cadastrado | 201, vacina registrada, animal não recriado |
+| Consultar operação pelo protocolo | 200 |
+| Simulação `indisponivel: true` | 503 |
+| Simulação `erro_validacao: true` | 422 simulado |
+| Vacinação com chave de idempotência nova | 201, `repetida: false` |
+| Mesmo envio repetido, com a mesma chave | 200, mesmo protocolo, `repetida: true`, sem novo registro |
+| Mesma vacinação com outra chave | 201, protocolo novo |
+| Envio sem `chave_idempotencia` | 422 |
+ 
+### 10.2 Pela clínica (testes do enunciado)
+ 
+| Teste | Como mostrar | Resultado esperado |
 |---|---|---|
-| `api_gov/app/schemas.py` e `models.py` | **Sexo passou a ser opcional** (M, F ou vazio), porque a clínica aceita animal sem sexo (ex.: aves) e o governo recusava a antirrábica deles. | Cristiano e João: decidir a regra final. Quem já tinha `governo.db` precisa **apagar o arquivo** (ele é recriado). |
-| `api_gov/app/schemas.py` | A classe `VacinacaoCreate` está escrita duas vezes; só a segunda vale. | Apagar a primeira (sem `chave_idempotencia`) para não confundir. |
-| `api_clinica/services/microchipService.js` | Sobrou a linha comentada `//exigirAnimal(animalId);`. Microchip com espaços (`"076 000 ..."`) recebe duas mensagens de erro juntas. | Apagar a linha comentada. Os espaços não atrapalham a tela (ela tira antes de mandar). |
-| Tamanhos dos campos | Clínica aceita espécie com 100, raça com 100 e nome da vacina com 150 caracteres; o governo aceita 50, 80 e 100. | Alinhar os tamanhos, senão o governo recusa (422) nomes compridos. |
-| `api_gov/requirements.txt` | Estava em UTF-16 (o `>` do PowerShell grava assim). Foi convertido para UTF-8, com as mesmas versões. | Para gerar de novo no Windows, use o Prompt de Comando (cmd): `pip freeze > requirements.txt`. |
-| Postman | A coleção `Clinica_Vet_Tutores_Animais_Microchip_Governo` já testa o seu microchip e os testes 12, 14, 15 e 16 pela clínica. | Falta a coleção só da API do governo (pendência da sua documentação). |
-
-## Checklist dos seus testes
-
-| Teste | Como mostrar | Situação |
-|---|---|---|
-| 7 e 8 | Ficha do animal → Vincular / trocar | Pronto (seu push) |
-| 11 | Passo 3 (vincular chip e alterar o animal; conferir no Swagger do governo) | Falta o passo 3 |
-| 12 | Antirrábica em animal com chip → tela "Governo" → Enviar: `confirmada` com protocolo | Pronto |
-| 13 | Registrar V10 → não aparece envio | Pronto |
-| 14 | Simulação `indisponivel: true` → Enviar: `pendente` (com o passo 2, `com_falha` depois de 5 tentativas) | Pronto |
-| 15 | Simulação de volta → Reenviar → `confirmada` | Pronto |
-| 16 | Pegar a `chaveIdempotencia` de um envio confirmado (`GET /api/integracoes`) e repetir o `POST /api/governo/vacinacoes-antirrabicas` no Swagger com ela → 200, `repetida: true`, mesmo protocolo | Pronto |
+| 7 | Vincular microchip de 15 números a um animal | 201, com veterinário e data |
+| 8 | Vincular um chip já usado (inclusive substituído) | 409 `MICROCHIP_JA_UTILIZADO` |
+| Troca de chip | Outro chip no mesmo animal, com e sem `motivo` | Sem motivo, 409; com motivo, 201 e o antigo vira `substituido` |
+| 11 | Vincular o primeiro chip e depois alterar o animal; conferir `GET /api/governo/animais/{chip}` | Cadastro e atualização chegam ao governo (`confirmada`); atualização e vacinação aguardam operações anteriores do animal |
+| 12 | Antirrábica em animal com chip, enviar | `confirmada`, com protocolo |
+| 13 | Registrar vacina comum | Nenhum envio é criado |
+| 14 | Simulação `indisponivel: true`, sem cliques manuais | `pendente` nas primeiras tentativas automáticas; `com_falha` após a quinta |
+| 15 | Desligar a simulação e clicar em **Reenviar** | `confirmada` |
+| 16 | Repetir o envio com a mesma chave | 200, `repetida: true`, mesmo protocolo |
+ 
+Os prints de cada teste ficam em `docs/RELATORIO_DE_TESTES.md`.
+ 
+## 11. Pendências e limitações conhecidas
+ 
+| Item | Situação |
+|---|---|
+| Coleção do Postman só da API do governo, salva em `postman/` | pendente |
+| Prints dos testes 7, 8, 11 e 12 a 16 para o relatório | pendente |
+| Alterar o nome ou o CPF do **tutor** não gera aviso ao governo (só a alteração do animal gera) | limitação conhecida |
+| Conferência dos dígitos do CPF | opcional |
+ 

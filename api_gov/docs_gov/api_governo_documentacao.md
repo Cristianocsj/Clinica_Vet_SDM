@@ -1,7 +1,7 @@
 # API do Governo (simulada): documentação
 
 Projeto A3 SDM, Sistema de Clínica Veterinária. Responsável: Cristiano.
-Última atualização: 08/11/2026.
+Última atualização: 16/11/2026.
 
 > Esta API é uma **simulação acadêmica**. Não é uma integração oficial com
 > sistemas governamentais reais e usa apenas dados fictícios.
@@ -77,8 +77,8 @@ api_gov/
 | id | inteiro | chave primária |
 | microchip | texto (15) | **único**, identifica o animal |
 | nome | texto (100) | |
-| especie | texto (50) | texto livre |
-| raca | texto (80) | opcional, texto livre |
+| especie | texto (100) | texto livre |
+| raca | texto (100) | opcional, texto livre |
 | sexo | texto (1) | M, F ou vazio (opcional desde a revisão de 10/11, ver AVISO em `schemas.py`) |
 | data_nascimento | data | opcional |
 | tutor_nome | texto (150) | |
@@ -93,7 +93,7 @@ Registra cada pedido recebido e o protocolo gerado.
 |---|---|---|
 | id | inteiro | chave primária |
 | protocolo | texto (30) | **único** |
-| chave_idempotencia | texto (100) | único; usada na vacinação antirrábica para impedir duplicidade |
+| chave_idempotencia | texto (100) | único; usada em cadastros, atualizações e vacinações para impedir duplicidade |
 | tipo | texto (30) | CADASTRO_ANIMAL, ATUALIZACAO_ANIMAL ou VACINACAO_ANTIRRABICA |
 | situacao | texto (20) | sempre `concluida`: só operações processadas com sucesso são gravadas |
 | mensagem | texto (255) | descrição do resultado |
@@ -105,7 +105,7 @@ Registra cada pedido recebido e o protocolo gerado.
 | id | inteiro | chave primária |
 | animal_id | inteiro | chave estrangeira para `animal_governo` |
 | operacao_id | inteiro | chave estrangeira para `operacao` |
-| nome_vacina | texto (100) | |
+| nome_vacina | texto (150) | |
 | fabricante | texto (100) | |
 | lote | texto (50) | |
 | data_aplicacao | data | |
@@ -130,6 +130,7 @@ Registra cada pedido recebido e o protocolo gerado.
 
 ```json
 {
+  "chave_idempotencia": "CADASTRO-1",
   "microchip": "985112345678901",
   "nome": "Rex",
   "especie": "Cão",
@@ -144,8 +145,11 @@ Registra cada pedido recebido e o protocolo gerado.
 | Código | Quando |
 |---|---|
 | 201 | Animal cadastrado. Retorna o protocolo e os dados do animal |
-| 409 | Já existe animal com esse microchip |
+| 200 | Animal já existia ou a mesma chave foi reenviada; retorna o protocolo e os dados |
 | 422 | Dados inválidos (por exemplo, microchip sem 15 números) |
+
+Cada cadastro exige uma chave de idempotência. Repetir a mesma chave devolve a operação anterior sem criar outro registro.
+Se o microchip já existir (por exemplo, incluído junto com uma vacinação), os dados são sincronizados no mesmo animal.
 
 ### 6.2 Consultar animal
 `GET /api/governo/animais/{microchip}`
@@ -158,14 +162,21 @@ Registra cada pedido recebido e o protocolo gerado.
 ### 6.3 Atualizar animal
 `PUT /api/governo/animais/{microchip}`
 
-O corpo tem os mesmos campos do cadastro, **sem** o `microchip` (que vem na
-rota e não pode ser alterado por aqui). Cada atualização gera um novo
-protocolo.
+O corpo tem os dados do cadastro, a chave de idempotência e, opcionalmente,
+`novo_microchip`. Quando presente, o registro do mesmo animal recebe o novo
+microchip; as vacinações continuam relacionadas ao registro existente.
+Repetir a mesma chave devolve o protocolo anterior sem aplicar a atualização de novo.
+Se a chave já tiver cadastrado o animal pela recuperação da clínica, a repetição da atualização
+devolve esse mesmo cadastro quando `novo_microchip` identifica o animal, sem criar outro registro.
+
+Se a clínica receber 404 ao atualizar porque o chip anterior não está cadastrado, ela envia o cadastro
+normal do animal pela rota `POST /api/governo/animais`, usando o chip atual e a mesma chave de idempotência.
 
 | Código | Quando |
 |---|---|
 | 200 | Animal atualizado. Retorna o novo protocolo e os dados |
 | 404 | Nenhum animal com esse microchip |
+| 409 | O novo microchip já pertence a outro animal ou a chave foi usada em outra operação |
 | 422 | Dados inválidos |
 
 ### 6.4 Receber vacinação antirrábica

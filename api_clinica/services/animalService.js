@@ -8,7 +8,8 @@
 //   - DELETE só inativa (consultas, vacinas e integrações continuam no histórico).
 // A ficha (GET /api/animais/:id) também mostra o microchip e a situação da
 // integração com o governo (enunciado 3.7, item 6).
-const { db } = require('../database/conexao');
+const crypto = require('crypto');
+const { db, transacao } = require('../database/conexao');
 const { ErroApi } = require('../utils/erroApi');
 const v = require('../utils/validacao');
 const integracaoService = require('./integracaoService');
@@ -101,6 +102,12 @@ const sqlAlterar = db.prepare(`
            ANIM_DS_COR           = ?,
            ANIM_VL_PESO_ATUAL    = ?
      WHERE ANIM_ID_ANIMAL = ?
+`);
+
+const sqlCriarPendenciaGov = db.prepare(`
+    INSERT INTO VET_INTEGRACAO_GOV
+        (ANIM_ID_ANIMAL, INGO_DS_TIPO_OPERACAO, INGO_DS_CHAVE_IDEMPOTENCIA, INGO_CD_MICROCHIP)
+    VALUES (?, 'ATUALIZACAO_ANIMAL', ?, ?)
 `);
 
 const sqlInativar = db.prepare(`UPDATE VET_ANIMAL SET ANIM_DS_SITUACAO = 'inativo' WHERE ANIM_ID_ANIMAL = ?`);
@@ -292,8 +299,14 @@ function alterar(id, corpo) {
         raca: novos.racaId !== undefined && novos.racaId !== atual.racaId,
     });
 
-    sqlAlterar.run(dados.tutorId, dados.especieId, dados.racaId, dados.nome, dados.dataNascimento,
-        dados.nascimentoEstimado, dados.sexo, dados.cor, dados.peso, atual.id);
+    transacao(() => {
+        sqlAlterar.run(dados.tutorId, dados.especieId, dados.racaId, dados.nome, dados.dataNascimento,
+            dados.nascimentoEstimado, dados.sexo, dados.cor, dados.peso, atual.id);
+        // A new key preserves edits made while an earlier request is still in flight.
+        if (atual.microchip) {
+            sqlCriarPendenciaGov.run(atual.id, crypto.randomUUID(), atual.microchip);
+        }
+    });
     return buscar(atual.id);
 }
 

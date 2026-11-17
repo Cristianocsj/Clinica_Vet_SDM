@@ -5,23 +5,29 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AnimalCreate(BaseModel):
+    chave_idempotencia: str = Field(min_length=1, max_length=100)
     microchip: str = Field(pattern=r"^\d{15}$", examples=["985112345678901"])
     nome: str = Field(min_length=1, max_length=100)
-    especie: str = Field(min_length=1, max_length=50)
-    raca: Optional[str] = Field(default=None, max_length=80)
-    # AVISO (revisão 10/11): sexo passou a ser OPCIONAL (M, F ou vazio) porque a clínica
-    # permite animal sem sexo (ex.: aves). Sem isso a vacina antirrábica desses animais
-    # era recusada (422). Cristiano e João: decidam a regra final e ajustem aqui e no
-    # cadastro de animal da clínica. Ver docs/GUIA_INTEGRACAO_CRISTIANO.md.
+    especie: str = Field(min_length=1, max_length=100)
+    raca: Optional[str] = Field(default=None, max_length=100)
+    # Sexo é opcional para acompanhar animais cujo sexo não foi informado na clínica.
     sexo: Optional[str] = Field(default=None, pattern=r"^[MF]$", examples=["M"])
     data_nascimento: Optional[date] = None
     tutor_nome: str = Field(min_length=1, max_length=150)
     tutor_cpf: str = Field(pattern=r"^\d{11}$", examples=["12345678909"])
 
 
-class AnimalOut(AnimalCreate):
+class AnimalOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    microchip: str
+    nome: str
+    especie: str
+    raca: Optional[str]
+    sexo: Optional[str]
+    data_nascimento: Optional[date]
+    tutor_nome: str
+    tutor_cpf: str
     criado_em: datetime
     atualizado_em: datetime
 
@@ -31,27 +37,30 @@ class OperacaoAnimalOut(BaseModel):
     situacao: str
     mensagem: str
     animal: AnimalOut
+    repetida: bool = False
 
 class AnimalUpdate(BaseModel):
+    chave_idempotencia: str = Field(min_length=1, max_length=100)
+    novo_microchip: Optional[str] = Field(default=None, pattern=r"^\d{15}$")
     nome: str = Field(min_length=1, max_length=100)
-    especie: str = Field(min_length=1, max_length=50)
-    raca: Optional[str] = Field(default=None, max_length=80)
-    sexo: Optional[str] = Field(default=None, pattern=r"^[MF]$")  # ver AVISO em AnimalCreate
+    especie: str = Field(min_length=1, max_length=100)
+    raca: Optional[str] = Field(default=None, max_length=100)
+    sexo: Optional[str] = Field(default=None, pattern=r"^[MF]$")
     data_nascimento: Optional[date] = None
     tutor_nome: str = Field(min_length=1, max_length=150)
     tutor_cpf: str = Field(pattern=r"^\d{11}$")
 
 class DadosAnimal(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
-    especie: str = Field(min_length=1, max_length=50)
-    raca: Optional[str] = Field(default=None, max_length=80)
-    sexo: Optional[str] = Field(default=None, pattern=r"^[MF]$")  # ver AVISO em AnimalCreate
+    especie: str = Field(min_length=1, max_length=100)
+    raca: Optional[str] = Field(default=None, max_length=100)
+    sexo: Optional[str] = Field(default=None, pattern=r"^[MF]$")
     data_nascimento: Optional[date] = None
     tutor_nome: str = Field(min_length=1, max_length=150)
     tutor_cpf: str = Field(pattern=r"^\d{11}$")
 
 class DadosVacina(BaseModel):
-    nome_vacina: str = Field(min_length=1, max_length=100)
+    nome_vacina: str = Field(min_length=1, max_length=150)
     fabricante: str = Field(min_length=1, max_length=100)
     lote: str = Field(min_length=1, max_length=50)
     data_aplicacao: date
@@ -66,12 +75,6 @@ class DadosVacina(BaseModel):
 class DadosVeterinario(BaseModel):
     nome: str = Field(min_length=1, max_length=150)
     crmv: str = Field(min_length=1, max_length=20)
-
-class VacinacaoCreate(BaseModel):
-    microchip: str = Field(pattern=r"^\d{15}$")
-    animal: DadosAnimal
-    vacina: DadosVacina
-    veterinario: DadosVeterinario
 
 class VacinacaoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

@@ -38,4 +38,5 @@ app.use((erro, req, res, next) => {
 
 app.listen(PORTA, () => {
     console.log(`API da Clínica rodando na porta ${PORTA}`);
+    require('./services/reenvioAutomatico').iniciar();
 });

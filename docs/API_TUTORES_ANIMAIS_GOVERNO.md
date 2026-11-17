@@ -69,7 +69,7 @@ Nome repetido: 409 `ESPECIE_JA_CADASTRADA` ou `RACA_JA_CADASTRADA` (a raça é �
 - Sexo `"M"`, `"F"` ou `null`. Peso em kg, maior que zero.
 - Histórico de consultas e vacinas: `GET /api/animais/:id/consultas` e `GET /api/animais/:id/vacinas` (rotas da Bia).
 
-## Envio ao governo (ponte mínima)
+## Integração com o governo
 
 | Rota | Resposta |
 |---|---|
@@ -77,10 +77,12 @@ Nome repetido: 409 `ESPECIE_JA_CADASTRADA` ou `RACA_JA_CADASTRADA` (a raça é �
 | POST /api/integracoes/:id/enviar | 200 com a situação depois da tentativa (botão Enviar/Reenviar) |
 
 - A linha é criada sozinha quando uma vacina **antirrábica aplicada** é registrada (`POST /api/vacinas`).
+- O primeiro vínculo de microchip cria o cadastro do animal; trocas de chip e alterações cadastrais criam atualizações.
 - O envio chama `POST /api/governo/vacinacoes-antirrabicas` e confirma com `GET /api/governo/operacoes/{protocolo}`.
 - Sem microchip ativo o governo não aceita: o envio fica `pendente` com o aviso "Aguardando vínculo de microchip" e não conta tentativa.
 - Governo fora do ar ou timeout (5 s): `pendente`. Governo recusou (4xx): `com_falha`. Já confirmada: 409 `INTEGRACAO_JA_CONFIRMADA`.
+- Cadastros, atualizações e vacinações pendentes são reenviados automaticamente a cada minuto, por até cinco tentativas; depois ficam `com_falha` e podem ser reenviados manualmente.
 - Endereço do governo: variável `GOV_API_URL` (padrão `http://localhost:8001/api/governo`).
 - Vínculo de microchip: rota do Cristiano, `POST /api/animais/:id/microchip` com `{ "microchip": "076000000000001" }`
   (ver `docs/API_BANCO_AUTENTICACAO_REGISTROS.md`).
-- Troca de microchip, reenvio automático e cadastro/atualização do animal no governo: `docs/GUIA_INTEGRACAO_CRISTIANO.md`.
+- Na troca, informe também `motivo`; o chip antigo permanece no histórico e o governo atualiza o mesmo animal, preservando suas vacinações.

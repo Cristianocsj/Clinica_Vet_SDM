@@ -13,10 +13,9 @@ class AnimalGoverno(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     microchip: Mapped[str] = mapped_column(String(15), unique=True, index=True)
     nome: Mapped[str] = mapped_column(String(100))
-    especie: Mapped[str] = mapped_column(String(50))
-    raca: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
-    # AVISO (revisão 10/11): sexo opcional, ver o comentário em schemas.py (AnimalCreate).
-    # Quem já tinha um governo.db antigo precisa apagar o arquivo para a coluna ser recriada.
+    especie: Mapped[str] = mapped_column(String(100))
+    raca: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    # Sexo é opcional para acompanhar animais cujo sexo não foi informado na clínica.
     sexo: Mapped[Optional[str]] = mapped_column(String(1), nullable=True)
     data_nascimento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     tutor_nome: Mapped[str] = mapped_column(String(150))
@@ -48,7 +47,7 @@ class VacinacaoAntirrabica(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     animal_id: Mapped[int] = mapped_column(ForeignKey("animal_governo.id"))
     operacao_id: Mapped[int] = mapped_column(ForeignKey("operacao.id"))
-    nome_vacina: Mapped[str] = mapped_column(String(100))
+    nome_vacina: Mapped[str] = mapped_column(String(150))
     fabricante: Mapped[str] = mapped_column(String(100))
     lote: Mapped[str] = mapped_column(String(50))
     data_aplicacao: Mapped[date] = mapped_column(Date)

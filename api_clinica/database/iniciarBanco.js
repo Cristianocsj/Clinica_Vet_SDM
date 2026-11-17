@@ -37,6 +37,15 @@ function lerSql(nomeArquivo) {
 db.exec(lerSql('clinica_changelog.sql'));
 console.log('Tabelas verificadas/criadas (clinica_changelog.sql).');
 
+// Migração compatível com bancos criados antes da integração de animais.
+const colunasIntegracao = db.prepare('PRAGMA table_info(VET_INTEGRACAO_GOV)').all();
+if (!colunasIntegracao.some((coluna) => coluna.name === 'INGO_CD_MICROCHIP')) {
+    db.exec('ALTER TABLE VET_INTEGRACAO_GOV ADD COLUMN INGO_CD_MICROCHIP CHAR(15)');
+}
+if (!colunasIntegracao.some((coluna) => coluna.name === 'INGO_CD_MICROCHIP_ANTERIOR')) {
+    db.exec('ALTER TABLE VET_INTEGRACAO_GOV ADD COLUMN INGO_CD_MICROCHIP_ANTERIOR CHAR(15)');
+}
+
 // 2. Dados iniciais
 const qtdEspecies = db.prepare('SELECT COUNT(*) AS qtd FROM VET_ESPECIE').get().qtd;
 if (qtdEspecies === 0) {

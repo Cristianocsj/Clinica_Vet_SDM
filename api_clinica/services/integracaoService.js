@@ -1,16 +1,11 @@
 // Ponte entre a API da clínica e a API do governo (simulada, em Python, porta 8001).
 //
-// O que já funciona (ponte mínima):
+// Integração com a API do governo:
 //   - listar as comunicações com o governo (tabela VET_INTEGRACAO_GOV);
-//   - enviar / reenviar MANUALMENTE uma VACINACAO_ANTIRRABICA, que é a pendência
-//     criada automaticamente pelo registro de vacina (vacinaService).
+//   - enviar cadastros, atualizações e vacinações antirrábicas.
 //
 // Sem microchip ativo o governo não aceita: o envio fica "pendente" com o aviso
 // "aguardando vínculo de microchip" (o vínculo é a rota do Cristiano, microchipRoutes.js).
-//
-// O que falta (parte do Cristiano, com exemplos prontos em docs/GUIA_INTEGRACAO_CRISTIANO.md):
-//   - reenvio automático (a cada 1 minuto, até 5 tentativas);
-//   - enviar CADASTRO_ANIMAL e ATUALIZACAO_ANIMAL.
 //
 // Situações (enunciado, seção 5):
 //   pendente   -> ainda não chegou no governo (sem chip, governo fora do ar, timeout)
@@ -41,7 +36,7 @@ const COLUNAS = `
     ig.VACI_ID_VACINA             AS vacinaId,
     va.VACI_NM_VACINA             AS vacinaNome,
     va.VACI_DT_APLICACAO          AS dataAplicacao,
-    mc.VIMI_CD_MICROCHIP          AS microchip`;
+    coalesce(ig.INGO_CD_MICROCHIP, mc.VIMI_CD_MICROCHIP) AS microchip`;
 
 const JUNCOES = `
       FROM VET_INTEGRACAO_GOV ig
@@ -59,15 +54,15 @@ const sqlListar = db.prepare(`
      ORDER BY ig.INGO_DT_HR_SOLICITACAO DESC, ig.INGO_ID_INTEGRACAO DESC
 `);
 
-// Tudo o que o governo pode pedir: animal, tutor, vacina, veterinário e microchip ativo
-// (os dados mínimos da vacinação estão no enunciado, seção 4)
+// Dados do animal, tutor, vacina, veterinário e microchip para montar cada operação.
 const sqlDadosEnvio = db.prepare(`
     SELECT ig.INGO_ID_INTEGRACAO         AS id,
            ig.INGO_DS_TIPO_OPERACAO      AS tipo,
            ig.INGO_DS_SITUACAO           AS situacao,
            ig.INGO_DS_CHAVE_IDEMPOTENCIA AS chave,
            ig.INGO_NR_PROTOCOLO_EXTERNO  AS protocolo,
-           mc.VIMI_CD_MICROCHIP          AS microchip,
+           coalesce(ig.INGO_CD_MICROCHIP, mc.VIMI_CD_MICROCHIP) AS microchip,
+           ig.INGO_CD_MICROCHIP_ANTERIOR AS microchipAnterior,
            a.ANIM_ID_ANIMAL              AS animalId,
            a.ANIM_NM_ANIMAL              AS animalNome,
            a.ANIM_FL_SEXO                AS sexo,
@@ -93,6 +88,22 @@ const sqlDadosEnvio = db.prepare(`
       LEFT JOIN VET_VINCULO_MICROCHIP mc
              ON mc.ANIM_ID_ANIMAL = a.ANIM_ID_ANIMAL AND mc.VIMI_DS_SITUACAO = 'ativo'
      WHERE ig.INGO_ID_INTEGRACAO = ?
+`);
+
+const sqlOperacaoAnimalNaoConfirmada = db.prepare(`
+    SELECT 1
+      FROM VET_INTEGRACAO_GOV
+     WHERE ANIM_ID_ANIMAL = ?
+       AND INGO_ID_INTEGRACAO < ?
+       AND INGO_DS_TIPO_OPERACAO IN ('CADASTRO_ANIMAL', 'ATUALIZACAO_ANIMAL')
+       AND INGO_DS_SITUACAO <> 'confirmada'
+     LIMIT 1
+`);
+
+const sqlAguardarOperacaoAnterior = db.prepare(`
+    UPDATE VET_INTEGRACAO_GOV
+       SET INGO_DS_MSG_ERRO = 'Aguardando a operação anterior de cadastro ou atualização do animal ser confirmada.'
+     WHERE INGO_ID_INTEGRACAO = ?
 `);
 
 // Sem chip: continua pendente e NÃO conta tentativa (decisão do grupo)
@@ -153,7 +164,7 @@ function mensagemDoGoverno(resposta) {
     return resposta.motivo || `resposta HTTP ${resposta.status}`;
 }
 
-// Dados do animal no formato do governo (ver api_gov/docs_gov)
+// Dados do animal no formato do governo.
 function montarAnimal(d) {
     return {
         nome: d.animalNome,
@@ -163,6 +174,18 @@ function montarAnimal(d) {
         data_nascimento: d.dataNascimento,
         tutor_nome: d.tutorNome,
         tutor_cpf: d.tutorCpf,
+    };
+}
+
+function montarCadastro(d) {
+    return {
+        metodo: 'POST',
+        caminho: '/animais',
+        corpo: {
+            chave_idempotencia: d.chave,
+            microchip: d.microchip,
+            ...montarAnimal(d),
+        },
     };
 }
 
@@ -186,8 +209,22 @@ function montarVacinacao(d) {
 }
 
 // Qual rota do governo chamar para cada tipo de operação.
-// Hoje só a vacinação. CADASTRO_ANIMAL e ATUALIZACAO_ANIMAL: ver o passo 3 do guia do Cristiano.
 function montarChamada(d) {
+    if (d.tipo === 'CADASTRO_ANIMAL') {
+        return montarCadastro(d);
+    }
+    if (d.tipo === 'ATUALIZACAO_ANIMAL') {
+        const chipAnterior = d.microchipAnterior || d.microchip;
+        return {
+            metodo: 'PUT',
+            caminho: `/animais/${encodeURIComponent(chipAnterior)}`,
+            corpo: {
+                chave_idempotencia: d.chave,
+                ...(chipAnterior !== d.microchip ? { novo_microchip: d.microchip } : {}),
+                ...montarAnimal(d),
+            },
+        };
+    }
     if (d.tipo === 'VACINACAO_ANTIRRABICA') {
         return { metodo: 'POST', caminho: '/vacinacoes-antirrabicas', corpo: montarVacinacao(d) };
     }
@@ -224,15 +261,35 @@ async function enviar(idIntegracao) {
     const chamada = montarChamada(d);
     if (!chamada) {
         throw new ErroApi(409, 'TIPO_NAO_IMPLEMENTADO',
-            `O envio de ${d.tipo} ainda não foi feito (parte do Cristiano, ver docs/GUIA_INTEGRACAO_CRISTIANO.md).`);
+            `O tipo de integração ${d.tipo} não é suportado.`);
     }
     if (!d.microchip) {
         sqlAguardarMicrochip.run(id);
         return buscar(id);
     }
+    if (d.tipo !== 'CADASTRO_ANIMAL' && sqlOperacaoAnimalNaoConfirmada.get(d.animalId, id)) {
+        sqlAguardarOperacaoAnterior.run(id);
+        return buscar(id);
+    }
 
-    const resposta = await chamarGoverno(chamada.metodo, chamada.caminho, chamada.corpo);
-    const resultado = { id, protocolo: d.protocolo, mensagem: null, respondeu: 1 };
+    let resposta = await chamarGoverno(chamada.metodo, chamada.caminho, chamada.corpo);
+    let cadastroDeRecuperacao = false;
+    if (d.tipo === 'ATUALIZACAO_ANIMAL' && resposta.status === 404) {
+        resposta = await chamarGoverno(
+            'POST',
+            '/animais',
+            montarCadastro(d).corpo
+        );
+        cadastroDeRecuperacao = resposta.status === 200 || resposta.status === 201;
+    }
+    const resultado = {
+        id,
+        protocolo: d.protocolo,
+        mensagem: cadastroDeRecuperacao
+            ? 'O registro anterior não existia no governo; o animal foi cadastrado com o microchip atual.'
+            : null,
+        respondeu: 1,
+    };
 
     if (resposta.status === 200 || resposta.status === 201) {
         // 201 = registrou agora; 200 = mesma chave de novo (o governo devolve o mesmo protocolo) ou atualização
@@ -245,7 +302,7 @@ async function enviar(idIntegracao) {
             resultado.mensagem = 'O governo recebeu, mas a confirmação pelo protocolo falhou. Envie de novo para confirmar.';
         }
     } else if (resposta.status === 0 || resposta.status >= 500) {
-        // Fora do ar / timeout / 503: a vacina continua registrada e o envio fica pendente
+        // Fora do ar / timeout / 503: o envio fica pendente para nova tentativa
         resultado.situacao = 'pendente';
         resultado.respondeu = resposta.status === 0 ? 0 : 1;
         resultado.mensagem = `Governo indisponível: ${mensagemDoGoverno(resposta)}. Tente de novo mais tarde.`;

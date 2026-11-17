@@ -395,6 +395,8 @@ create table if not exists VET_INTEGRACAO_GOV
    VACI_ID_VACINA             	INTEGER,
    INGO_DS_TIPO_OPERACAO      	VARCHAR(30)          	 NOT NULL,
    INGO_DS_CHAVE_IDEMPOTENCIA 	VARCHAR(100)         	 NOT NULL,
+   INGO_CD_MICROCHIP          	CHAR(15),
+   INGO_CD_MICROCHIP_ANTERIOR 	CHAR(15),
    INGO_NR_PROTOCOLO_EXTERNO  	VARCHAR(100),
    INGO_DS_SITUACAO           	VARCHAR(12)          	 default 'pendente' not null,
    INGO_QT_TENTATIVAS         	INTEGER              	 default 0 not null,
@@ -428,6 +430,8 @@ create index if not exists INGO_IX_02 on VET_INTEGRACAO_GOV (INGO_DS_SITUACAO);
 --comment on column VET_INTEGRACAO_GOV.VACI_ID_VACINA              is 'Identificador da vacina comunicada (somente em VACINACAO_ANTIRRABICA)';
 --comment on column VET_INTEGRACAO_GOV.INGO_DS_TIPO_OPERACAO       is 'Tipo da operação.(CADASTRO_ANIMAL/ATUALIZACAO_ANIMAL/VACINACAO_ANTIRRABICA)';
 --comment on column VET_INTEGRACAO_GOV.INGO_DS_CHAVE_IDEMPOTENCIA  is 'Chave de idempotência da requisição (a mesma em todas as tentativas)';
+--comment on column VET_INTEGRACAO_GOV.INGO_CD_MICROCHIP           is 'Microchip enviado nesta operação';
+--comment on column VET_INTEGRACAO_GOV.INGO_CD_MICROCHIP_ANTERIOR  is 'Microchip anterior, usado ao sincronizar uma troca';
 --comment on column VET_INTEGRACAO_GOV.INGO_NR_PROTOCOLO_EXTERNO   is 'Número do protocolo retornado pela API do governo';
 --comment on column VET_INTEGRACAO_GOV.INGO_DS_SITUACAO            is 'Situação da integração.(pendente/enviada/confirmada/com_falha)';
 --comment on column VET_INTEGRACAO_GOV.INGO_QT_TENTATIVAS          is 'Quantidade de tentativas de envio';

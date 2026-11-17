@@ -121,19 +121,15 @@ document.getElementById('formMicrochip').addEventListener('submit', async (event
     if (animal.microchip && !d.motivo) return mostrarMensagem('Este animal já tem microchip: informe o motivo da troca.', 'warning');
 
     const corpo = { microchip };
-    if (d.motivo) corpo.motivo = d.motivo; // troca: a API ainda não aceita (ver o guia do Cristiano)
+    if (d.motivo) corpo.motivo = d.motivo;
     try {
         await comBotaoOcupado(evento.submitter, () => api('POST', `/animais/${idAnimal}/microchip`, corpo));
-        mostrarMensagem('Microchip vinculado. Se havia envio ao governo esperando o chip, use Enviar.', 'success');
+        mostrarMensagem('Microchip vinculado. O cadastro ou a troca será enviado ao governo automaticamente.', 'success');
         evento.target.reset();
         evento.target.classList.add('d-none');
         carregarFicha();
     } catch (erro) {
-        if (erro.codigo === 'ANIMAL_JA_POSSUI_MICROCHIP') {
-            mostrarMensagem(`${erro.message} A troca de microchip ainda não foi feita na API (ver docs/GUIA_INTEGRACAO_CRISTIANO.md).`, 'warning');
-        } else {
-            mostrarMensagem(erro.message);
-        }
+        mostrarMensagem(erro.message);
     }
 });
 

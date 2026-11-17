@@ -144,12 +144,13 @@ Exemplo:
 
 | Rota | Corpo | Resposta |
 |---|---|---|
-| POST /api/animais/:id/microchip | microchip (texto com 15 dígitos) | 201 com o vínculo criado |
+| POST /api/animais/:id/microchip | microchip (texto com 15 dígitos), motivo (obrigatório para troca) | 201 com o vínculo criado |
 
 - A rota exige token de veterinário; o responsável pelo vínculo é obtido da sessão, nunca do corpo.
-- O animal precisa existir e só pode ter um microchip ativo.
+- O animal precisa existir e estar ativo; só pode ter um microchip ativo.
+- A troca exige motivo, preserva o chip antigo no histórico e cria uma atualização para o governo.
 - Um código de microchip não pode ser reutilizado, mesmo após uma futura substituição (409 `MICROCHIP_JA_UTILIZADO`).
-- O código precisa conter exatamente 15 dígitos; animal inexistente retorna 404 e animal com chip ativo retorna 409.
+- O código precisa conter exatamente 15 dígitos; animal inexistente retorna 404 e animal com chip ativo sem motivo retorna 409.
 
 ### Vacinas (teste 10)
 
@@ -199,6 +200,15 @@ Quando registra uma vacina antirrábica aplicada, a API já cria uma linha na ta
 
 Vacina comum, ou antirrábica só agendada, não cria linha (teste 13).
 O banco não deixa duas linhas para a mesma vacina, e enviada/confirmada precisam ter o protocolo.
+
+O primeiro vínculo de microchip também cria `CADASTRO_ANIMAL`; trocas de chip e alterações cadastrais criam
+`ATUALIZACAO_ANIMAL`. Essas operações enviam os dados ao governo usando a mesma chave de idempotência em
+todas as tentativas. Na troca, o registro governamental existente recebe o chip novo e mantém o histórico
+de vacinações.
+
+A clínica reenvia operações pendentes ou sem confirmação automaticamente a cada minuto, por até cinco
+tentativas. Sem microchip ativo, a operação aguarda sem consumir tentativa. Ao atingir o limite, fica
+`com_falha`; o botão **Reenviar** continua disponível para uma nova tentativa manual.
 
 ## Testes no Postman
 
