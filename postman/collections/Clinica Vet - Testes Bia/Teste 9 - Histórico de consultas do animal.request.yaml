@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/animais/{{animalId}}/consultas"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      const h = pm.response.json();
+      pm.test('A consulta registrada está no histórico', () => pm.expect(h.consultas.map((c) => c.id)).to.include(Number(pm.collectionVariables.get('consultaId'))));
+      pm.test('Mais recente primeiro', () => { const d = h.consultas.map((c) => c.dataHora); pm.expect(d).to.eql([...d].sort().reverse()); });
+    language: text/javascript
+order: 6000

@@ -1,0 +1,35 @@
+$kind: http-request
+url: "{{baseUrl}}/api/vacinas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "animalId": "{{animalId}}",
+      "nome": "V10",
+      "tipo": "polivalente",
+      "fabricante": "Zoetis",
+      "lote": "L2026",
+      "validadeLote": "{{daqui1ano}}",
+      "dose": "reforço anual",
+      "via": "subcutânea",
+      "proximaDose": "{{daqui20dias}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const p = (n) => String(n).padStart(2, '0');
+      const dia = (d) => { const x = new Date(); x.setDate(x.getDate() + d); return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate()); };
+      pm.collectionVariables.set('daqui20dias', dia(20));
+      pm.collectionVariables.set('daqui1ano', dia(365));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201', () => pm.response.to.have.status(201));
+      const v = pm.response.json();
+      pm.test('Vacina aplicada', () => pm.expect(v.situacao).to.eql('aplicada'));
+      pm.collectionVariables.set('vacinaId', v.id);
+    language: text/javascript
+order: 7000

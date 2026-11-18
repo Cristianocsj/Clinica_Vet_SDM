@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/animais/{{animalId}}/vacinas"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('A vacina registrada está no histórico', () => pm.expect(pm.response.json().vacinas.map((v) => v.id)).to.include(Number(pm.collectionVariables.get('vacinaId'))));
+    language: text/javascript
+order: 9000

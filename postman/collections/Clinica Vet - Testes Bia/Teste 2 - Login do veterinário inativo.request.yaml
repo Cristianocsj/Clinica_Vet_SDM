@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "inativo@clinica.test",
+      "senha": "{{senhaTeste}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 403', () => pm.response.to.have.status(403));
+      pm.test('Código VETERINARIO_INATIVO', () => pm.expect(pm.response.json().codigo).to.eql('VETERINARIO_INATIVO'));
+    language: text/javascript
+order: 2000

@@ -1,0 +1,24 @@
+$kind: collection
+name: Clínica Vet - Testes Bia
+description: |-
+  Testes 1, 2, 3, 4, 9 e 10.
+
+  Antes de rodar:
+  1. npm run banco:recriar:demo (o Rex é o animal 1)
+  2. npm start
+  3. Rodar na ordem. O Teste 1 salva o token usado nos testes 9 e 10.
+variables:
+  baseUrl: http://localhost:3000
+  senhaTeste: Senha@123
+  token: ""
+  animalId: "1"
+  consultaId: ""
+  daqui20dias: ""
+  daqui1ano: ""
+  vacinaId: ""
+auth:
+  - id: ed8fea97-5f4a-403f-bb4c-3f92f6d41a82
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{token}}"

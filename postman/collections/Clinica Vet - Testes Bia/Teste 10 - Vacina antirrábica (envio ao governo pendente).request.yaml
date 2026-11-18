@@ -1,0 +1,34 @@
+$kind: http-request
+url: "{{baseUrl}}/api/vacinas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "animalId": "{{animalId}}",
+      "nome": "Antirrábica",
+      "tipo": "raiva",
+      "fabricante": "MSD",
+      "lote": "R2026",
+      "validadeLote": "{{daqui1ano}}",
+      "dose": "dose única",
+      "proximaDose": "{{daqui1ano}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const p = (n) => String(n).padStart(2, '0');
+      const dia = (d) => { const x = new Date(); x.setDate(x.getDate() + d); return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate()); };
+      pm.collectionVariables.set('daqui20dias', dia(20));
+      pm.collectionVariables.set('daqui1ano', dia(365));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201', () => pm.response.to.have.status(201));
+      const v = pm.response.json();
+      pm.test('É antirrábica', () => pm.expect(v.antirrabica).to.eql(true));
+      pm.test('Envio ao governo pendente', () => pm.expect(v.integracaoGov.situacao).to.eql('pendente'));
+    language: text/javascript
+order: 10000

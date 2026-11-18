@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/vacinas/proximas-doses?dias=30"
+method: GET
+queryParams:
+  dias: "30"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      const r = pm.response.json();
+      pm.test('A próxima dose da vacina registrada aparece', () => pm.expect(r.doses.map((d) => d.vacinaId)).to.include(Number(pm.collectionVariables.get('vacinaId'))));
+      pm.test('Ordenada por data', () => { const d = r.doses.map((x) => x.dataPrevista); pm.expect(d).to.eql([...d].sort()); });
+    language: text/javascript
+order: 8000

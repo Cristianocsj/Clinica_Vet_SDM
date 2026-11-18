@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "pendente@clinica.test",
+      "senha": "{{senhaTeste}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 403', () => pm.response.to.have.status(403));
+      pm.test('Código SENHA_NAO_CONFIRMADA', () => pm.expect(pm.response.json().codigo).to.eql('SENHA_NAO_CONFIRMADA'));
+    language: text/javascript
+order: 3000

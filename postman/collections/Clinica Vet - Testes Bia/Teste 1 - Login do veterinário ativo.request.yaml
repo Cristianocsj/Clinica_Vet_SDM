@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "ativo@clinica.test",
+      "senha": "{{senhaTeste}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      const corpo = pm.response.json();
+      pm.test('Devolve o token', () => pm.expect(corpo.token).to.be.a('string').and.have.lengthOf(64));
+      pm.collectionVariables.set('token', corpo.token);
+    language: text/javascript
+order: 1000

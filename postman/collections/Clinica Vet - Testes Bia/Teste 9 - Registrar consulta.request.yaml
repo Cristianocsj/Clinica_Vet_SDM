@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/api/consultas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "animalId": "{{animalId}}",
+      "motivo": "Vômito há dois dias",
+      "sintomas": "Vômito e apatia",
+      "diagnostico": "Gastrite leve",
+      "tratamento": "Dieta leve por 5 dias",
+      "prescricao": "Omeprazol 10mg 1x ao dia",
+      "peso": 31.8,
+      "temperatura": 39.1
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201', () => pm.response.to.have.status(201));
+      const c = pm.response.json();
+      pm.test('Consulta realizada', () => pm.expect(c.status).to.eql('realizada'));
+      pm.collectionVariables.set('consultaId', c.id);
+    language: text/javascript
+order: 5000
