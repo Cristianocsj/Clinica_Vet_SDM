@@ -1,0 +1,47 @@
+<div class="app-moldura" [class.menu-aberto]="menuAberto">
+  <!-- Barra de cima (só no celular) -->
+  <header class="barra-celular">
+    <button class="btn-icone" (click)="menuAberto = true" aria-label="Abrir menu"><i class="bi bi-list"></i></button>
+    <a routerLink="/painel" class="marca marca-pequena"><img src="img/cachorro.webp" alt=""> Clínica <strong>Vet</strong></a>
+    <span class="avatar avatar-pequeno">{{ iniciais }}</span>
+  </header>
+
+  <div class="fundo-menu" (click)="menuAberto = false"></div>
+
+  <!-- Menu lateral -->
+  <aside class="menu-lateral">
+    <div class="d-flex align-items-center justify-content-between">
+      <a routerLink="/painel" class="marca"><img src="img/cachorro.webp" alt=""> <span>Clínica <strong>Vet</strong><small>cuidado que abana o rabo</small></span></a>
+      <button class="btn-icone d-lg-none" (click)="menuAberto = false" aria-label="Fechar menu"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <nav class="menu-links">
+      @for (link of links; track link.rota) {
+        <a [routerLink]="link.rota" routerLinkActive="ativo" (click)="menuAberto = false">
+          <i class="bi {{ link.icone }}"></i> {{ link.nome }}
+        </a>
+      }
+    </nav>
+
+    <div class="menu-cartao">
+      <img src="img/cao-guia.webp" alt="">
+      <p>Antirrábica aplicada vai <strong>direto ao governo</strong>. Se ele cair, fica pendente e é reenviada sozinha.</p>
+    </div>
+
+    <div class="menu-usuario">
+      <span class="avatar">{{ iniciais }}</span>
+      <div class="flex-grow-1 text-truncate">
+        <div class="fw-bold text-truncate">{{ sessao?.veterinario?.nome }}</div>
+        <small class="text-truncate d-block">{{ sessao?.veterinario?.email }}</small>
+      </div>
+      <button class="btn-icone" (click)="sair()" title="Sair" aria-label="Sair"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </aside>
+
+  <main class="conteudo">
+    <router-outlet />
+    <footer class="rodape">
+      Projeto A3 · Sistemas Distribuídos e Mobile · dados fictícios · ilustrações <a href="https://github.com/microsoft/fluentui-emoji" target="_blank" rel="noopener">Fluent Emoji</a> (MIT)
+    </footer>
+  </main>
+</div>

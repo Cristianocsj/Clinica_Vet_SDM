@@ -1,0 +1,27 @@
+<router-outlet />
+
+<!-- Avisos (canto da tela) -->
+<div class="area-avisos" aria-live="polite">
+  @for (a of aviso.avisos; track a.id) {
+    <div class="aviso aviso-{{ a.tipo }}" role="alert">
+      <i class="bi {{ icone(a.tipo) }}"></i>
+      <span class="flex-grow-1">{{ a.texto }}</span>
+      <button class="btn-close btn-close-sm" (click)="aviso.fechar(a.id)" aria-label="Fechar"></button>
+    </div>
+  }
+</div>
+
+<!-- Janela de confirmação -->
+@if (aviso.pergunta; as p) {
+  <div class="janela-fundo" (click)="p.responder(false)">
+    <div class="janela" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <img src="img/cachorro.webp" alt="" width="56" height="56">
+      <h2>{{ p.titulo }}</h2>
+      <p>{{ p.texto }}</p>
+      <div class="d-flex gap-2 justify-content-end">
+        <button class="btn btn-light" (click)="p.responder(false)">Cancelar</button>
+        <button class="btn btn-perigo" (click)="p.responder(true)">{{ p.botao }}</button>
+      </div>
+    </div>
+  </div>
+}

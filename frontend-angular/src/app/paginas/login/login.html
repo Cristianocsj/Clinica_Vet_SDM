@@ -1,0 +1,67 @@
+<div class="tela-entrada">
+  <!-- Lado ilustrado -->
+  <section class="entrada-hero">
+    <div class="patinhas-fundo"></div>
+    <div class="entrada-hero-conteudo">
+      <a class="marca marca-clara"><img src="img/cachorro.webp" alt=""> <span>Clínica <strong>Vet</strong></span></a>
+      <h1>Cuidado que <span>abana o rabo.</span></h1>
+      <p>Tutores, animais, microchip, consultas e vacinas em um só lugar, com a antirrábica comunicada ao governo.</p>
+      <div class="hero-pets">
+        <div class="bolha bolha-grande"><img src="img/cachorro-andando.webp" alt="Cachorro"></div>
+        <div class="bolha bolha-media"><img src="img/gato.webp" alt="Gato"></div>
+        <div class="bolha bolha-pequena"><img src="img/poodle.webp" alt="Poodle"></div>
+        <div class="selo-flutuante selo-1"><img src="img/vacina.webp" alt=""> Vacina em dia</div>
+        <div class="selo-flutuante selo-2"><i class="bi bi-cpu"></i> Microchip ISO</div>
+      </div>
+      <ul class="hero-lista">
+        <li><i class="bi bi-shield-check"></i> Acesso só de veterinário ativo e com senha confirmada</li>
+        <li><i class="bi bi-geo-alt"></i> Endereço automático pelo CEP (ViaCEP)</li>
+        <li><i class="bi bi-bank"></i> Envio da antirrábica ao governo, com reenvio sem duplicar</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Formulário -->
+  <section class="entrada-formulario">
+    <form class="cartao-entrada" (ngSubmit)="entrar()" novalidate>
+      <img src="img/veterinaria.webp" alt="" class="entrada-avatar" width="72" height="72">
+      <h2>Bem-vindo(a) de volta!</h2>
+      <p class="texto-suave">Entre com seu e-mail e senha de veterinário.</p>
+
+      @if (erro) {
+        <div class="alerta-inline alerta-{{ tipoErro }}" role="alert">
+          <i class="bi" [class.bi-x-octagon-fill]="tipoErro === 'erro'" [class.bi-exclamation-triangle-fill]="tipoErro === 'alerta'"></i>
+          <span>{{ erro }}</span>
+        </div>
+      }
+
+      <label class="form-label" for="email">E-mail</label>
+      <div class="campo-icone">
+        <i class="bi bi-envelope"></i>
+        <input id="email" name="email" type="email" class="form-control" [(ngModel)]="email" autocomplete="username" placeholder="voce@clinica.test" required>
+      </div>
+
+      <label class="form-label mt-3" for="senha">Senha</label>
+      <div class="campo-icone">
+        <i class="bi bi-lock"></i>
+        <input id="senha" name="senha" [type]="verSenha ? 'text' : 'password'" class="form-control" [(ngModel)]="senha" autocomplete="current-password" placeholder="Sua senha" required>
+        <button type="button" class="btn-ver-senha" (click)="verSenha = !verSenha" [attr.aria-label]="verSenha ? 'Esconder senha' : 'Mostrar senha'">
+          <i class="bi" [class.bi-eye]="!verSenha" [class.bi-eye-slash]="verSenha"></i>
+        </button>
+      </div>
+
+      <button type="submit" class="btn btn-primario w-100 mt-4" [disabled]="carregando">
+        @if (carregando) { <span class="spinner-border spinner-border-sm"></span> Entrando... } @else { Entrar <i class="bi bi-arrow-right"></i> }
+      </button>
+
+      <div class="text-center mt-3">
+        <a routerLink="/confirmar-senha" [queryParams]="email ? { email: email } : {}">Primeiro acesso? Confirmar senha</a>
+      </div>
+
+      <div class="dica-demo">
+        <i class="bi bi-info-circle"></i>
+        Demonstração: <code>ativo&#64;clinica.test</code> · senha <code>Senha&#64;123</code>
+      </div>
+    </form>
+  </section>
+</div>

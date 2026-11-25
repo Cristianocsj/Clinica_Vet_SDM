@@ -1652,16 +1652,19 @@
           }
         },
         {
-          "name": "Teste 12 - Enviar a antirrábica que esperava o chip (200, confirmada)",
+          "name": "Teste 12 - A antirrábica que esperava o chip foi enviada sozinha (confirmada)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Ao vincular o chip (teste 7) a clínica já envia na hora o cadastro do animal e a antirrábica pendente",
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const i = pm.response.json();",
+                  "const lista = pm.response.json();",
+                  "const i = lista.find((x) => x.id === Number(pm.collectionVariables.get('integracaoId')));",
                   "pm.test('Confirmada pelo governo, com protocolo', () => { pm.expect(i.situacao).to.eql('confirmada'); pm.expect(i.protocolo).to.match(/^GOV-/); });",
+                  "pm.test('Cadastro do animal no governo também confirmado (teste 11)', () => pm.expect(lista.some((x) => x.tipo === 'CADASTRO_ANIMAL' && x.situacao === 'confirmada')).to.eql(true));",
                   "pm.collectionVariables.set('protocolo', i.protocolo);",
                   "pm.collectionVariables.set('chave', i.chaveIdempotencia);"
                 ]
@@ -1669,7 +1672,7 @@
             }
           ],
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [
               {
                 "key": "Content-Type",
@@ -1677,15 +1680,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/integracoes/{{integracaoId}}/enviar",
+              "raw": "{{baseUrl}}/api/integracoes?animalId={{animalAtivoId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "integracoes",
-                "{{integracaoId}}",
-                "enviar"
+                "integracoes"
+              ],
+              "query": [
+                {
+                  "key": "animalId",
+                  "value": "{{animalAtivoId}}"
+                }
               ]
             }
           }
@@ -1737,7 +1744,7 @@
           }
         },
         {
-          "name": "Teste 14 - Nova antirrábica (201)",
+          "name": "Teste 14 - Nova antirrábica (201, salva e pendente)",
           "event": [
             {
               "listen": "test",
@@ -1745,7 +1752,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('integracao2Id', pm.response.json().integracaoGov.id);"
+                  "const v = pm.response.json();",
+                  "pm.test('Vacina salva e envio pendente (governo fora do ar)', () => { pm.expect(v.id).to.be.a('number'); pm.expect(v.integracaoGov.situacao).to.eql('pendente'); });",
+                  "pm.collectionVariables.set('integracao2Id', v.integracaoGov.id);"
                 ]
               }
             }
@@ -1780,7 +1789,7 @@
           }
         },
         {
-          "name": "Teste 14 - Envio fica pendente, a vacina continua registrada (200)",
+          "name": "Teste 14 - Reenviar com o governo fora do ar continua pendente (200)",
           "event": [
             {
               "listen": "test",
@@ -1789,7 +1798,7 @@
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const i = pm.response.json();",
-                  "pm.test('Pendente, 1 tentativa, governo indisponível', () => { pm.expect(i.situacao).to.eql('pendente'); pm.expect(i.tentativas).to.eql(1); pm.expect(i.mensagem).to.include('indisponível'); });"
+                  "pm.test('Pendente, 2 tentativas (a do registro e esta), governo indisponível', () => { pm.expect(i.situacao).to.eql('pendente'); pm.expect(i.tentativas).to.eql(2); pm.expect(i.mensagem).to.include('indisponível'); });"
                 ]
               }
             }
@@ -1872,7 +1881,7 @@
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const i = pm.response.json();",
-                  "pm.test('Confirmada na 2ª tentativa', () => { pm.expect(i.situacao).to.eql('confirmada'); pm.expect(i.tentativas).to.eql(2); });"
+                  "pm.test('Confirmada na 3ª tentativa', () => { pm.expect(i.situacao).to.eql('confirmada'); pm.expect(i.tentativas).to.eql(3); });"
                 ]
               }
             }

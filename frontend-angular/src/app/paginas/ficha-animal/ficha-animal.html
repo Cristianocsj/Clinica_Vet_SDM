@@ -1,0 +1,235 @@
+<a routerLink="/animais" class="link-voltar"><i class="bi bi-arrow-left"></i> Animais</a>
+
+@if (!animal) {
+  <div class="vazio"><span class="spinner-border spinner-border-sm"></span> Carregando a ficha...</div>
+} @else {
+  <!-- Perfil -->
+  <section class="perfil-pet">
+    <div class="patinhas-fundo"></div>
+    <div class="perfil-foto"><img [src]="imagemEspecie(animal.especieNome)" [alt]="animal.especieNome"></div>
+    <div class="perfil-dados">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <h1>{{ animal.nome }}</h1>
+        <app-etiqueta [situacao]="animal.situacao" />
+        <span class="perfil-ficha">Ficha nº {{ animal.id }}</span>
+      </div>
+      <p class="perfil-sub">{{ animal.especieNome }} · {{ animal.racaNome || 'raça não informada' }} · {{ textoSexo(animal.sexo) }}</p>
+      <div class="perfil-grade">
+        <div><span>Nascimento</span><strong>{{ formatarData(animal.dataNascimento) || '-' }}{{ animal.nascimentoEstimado ? ' (estimado)' : '' }}</strong></div>
+        <div><span>Peso atual</span><strong>{{ animal.peso ? animal.peso + ' kg' : '-' }}</strong></div>
+        <div><span>Cor</span><strong>{{ animal.cor || '-' }}</strong></div>
+        <div><span>Microchip</span>
+          @if (animal.microchip) { <strong class="fonte-mono">{{ animal.microchip }}</strong> } @else { <strong class="texto-perigo">sem microchip</strong> }
+        </div>
+      </div>
+      <p class="perfil-tutor"><i class="bi bi-person-heart"></i> Tutor: <strong>{{ animal.tutor.nome }}</strong> (CPF {{ formatarCpf(animal.tutor.cpf) }}){{ animal.tutor.telefone ? ' · ' + animal.tutor.telefone : '' }}
+        <a [routerLink]="['/animais']" [queryParams]="{ tutorId: animal.tutorId }">outros animais</a></p>
+    </div>
+    @if (animal.situacao === 'ativo') {
+      <div class="perfil-acoes">
+        <button class="btn btn-claro" (click)="abrir('consulta')"><img src="img/estetoscopio.webp" alt=""> Registrar consulta</button>
+        <button class="btn btn-claro" (click)="abrir('vacina')"><img src="img/vacina.webp" alt=""> Registrar vacina</button>
+        <button class="btn btn-claro" (click)="abrir('microchip')"><i class="bi bi-cpu"></i> {{ animal.microchip ? 'Trocar microchip' : 'Vincular microchip' }}</button>
+      </div>
+    }
+  </section>
+
+  <!-- Abas -->
+  <nav class="abas">
+    <button [class.ativa]="aba === 'consultas'" (click)="aba = 'consultas'"><i class="bi bi-clipboard2-pulse"></i> Consultas <span>{{ consultas.length }}</span></button>
+    <button [class.ativa]="aba === 'vacinas'" (click)="aba = 'vacinas'"><i class="bi bi-shield-plus"></i> Vacinas <span>{{ vacinas.length }}</span></button>
+    <button [class.ativa]="aba === 'microchip'" (click)="aba = 'microchip'"><i class="bi bi-cpu"></i> Microchip <span>{{ animal.microchips.length }}</span></button>
+    <button [class.ativa]="aba === 'governo'" (click)="aba = 'governo'"><i class="bi bi-bank"></i> Governo @if (pendencias) {<span class="aba-alerta">{{ pendencias }}</span>} @else {<span>{{ animal.integracoesGov.length }}</span>}</button>
+  </nav>
+
+  <section class="cartao">
+    @switch (aba) {
+      @case ('consultas') {
+        @if (!consultas.length) {
+          <div class="vazio"><img src="img/estetoscopio.webp" alt="" width="56"> Nenhuma consulta registrada.</div>
+        } @else {
+          <ol class="linha-tempo">
+            @for (c of consultas; track c.id) {
+              <li>
+                <div class="linha-tempo-topo">
+                  <strong>{{ formatarDataHora(c.dataHora) }}</strong>
+                  <app-etiqueta [situacao]="c.status" />
+                  <span class="texto-suave ms-auto"><i class="bi bi-person-badge"></i> {{ c.veterinarioNome }}</span>
+                </div>
+                <h3>{{ c.motivo }}</h3>
+                <div class="linha-tempo-detalhes">
+                  @if (c.diagnostico) { <div><span>Diagnóstico</span>{{ c.diagnostico }}</div> }
+                  @if (c.tratamento) { <div><span>Tratamento</span>{{ c.tratamento }}</div> }
+                  @if (c.prescricao) { <div><span>Medicamentos</span>{{ c.prescricao }}</div> }
+                  @if (c.peso) { <div><span>Peso</span>{{ c.peso }} kg</div> }
+                  @if (c.temperatura) { <div><span>Temperatura</span>{{ c.temperatura }} °C</div> }
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      }
+      @case ('vacinas') {
+        @if (!vacinas.length) {
+          <div class="vazio"><img src="img/vacina.webp" alt="" width="56"> Nenhuma vacina registrada.</div>
+        } @else {
+          <div class="tabela-responsiva">
+            <table class="tabela">
+              <thead><tr><th>Aplicação</th><th>Vacina</th><th>Dose</th><th>Lote</th><th>Próxima dose</th><th>Situação</th><th>Governo</th></tr></thead>
+              <tbody>
+                @for (v of vacinas; track v.id) {
+                  <tr>
+                    <td data-titulo="Aplicação" class="text-nowrap">{{ formatarData(v.dataAplicacao) }}</td>
+                    <td data-titulo="Vacina"><strong>{{ v.nome }}</strong>&nbsp;<span class="texto-suave">({{ v.tipo }})</span>&nbsp; @if (v.antirrabica) { <span class="etiqueta etiqueta-escura">antirrábica</span> }</td>
+                    <td data-titulo="Dose">{{ v.dose || '-' }}</td>
+                    <td data-titulo="Lote" class="fonte-mono">{{ v.lote || '-' }}</td>
+                    <td data-titulo="Próxima dose">{{ formatarData(v.proximaDose) || '-' }}</td>
+                    <td data-titulo="Situação"><app-etiqueta [situacao]="v.situacao" /></td>
+                    <td data-titulo="Governo">@if (v.integracaoGov) { <app-etiqueta [situacao]="v.integracaoGov.situacao" /> } @else { <span class="texto-suave">não precisa</span> }</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+      @case ('microchip') {
+        @if (!animal.microchips.length) {
+          <div class="vazio"><i class="bi bi-cpu fs-1"></i> Nenhum microchip vinculado.
+            @if (animal.situacao === 'ativo') { <button class="btn btn-primario btn-sm" (click)="abrir('microchip')">Vincular agora</button> }
+          </div>
+        } @else {
+          <div class="tabela-responsiva">
+            <table class="tabela">
+              <thead><tr><th>Código</th><th>Situação</th><th>Vinculado em</th><th>Veterinário</th><th>Substituído em</th><th>Motivo</th></tr></thead>
+              <tbody>
+                @for (m of animal.microchips; track m.id) {
+                  <tr>
+                    <td data-titulo="Código" class="fonte-mono fw-bold">{{ m.codigo }}</td>
+                    <td data-titulo="Situação"><app-etiqueta [situacao]="m.situacao" /></td>
+                    <td data-titulo="Vinculado em">{{ formatarDataHora(m.dataVinculo) }}</td>
+                    <td data-titulo="Veterinário">{{ m.veterinarioNome }}</td>
+                    <td data-titulo="Substituído em">{{ formatarDataHora(m.dataSubstituicao) || '-' }}</td>
+                    <td data-titulo="Motivo">{{ m.motivoSubstituicao || '-' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+      @case ('governo') {
+        @if (!animal.integracoesGov.length) {
+          <div class="vazio"><img src="img/governo.webp" alt="" width="56"> Nenhuma comunicação com o governo ainda. Vincule o microchip para registrar o animal.</div>
+        } @else {
+          <div class="tabela-responsiva">
+            <table class="tabela">
+              <thead><tr><th>Pedido em</th><th>Operação</th><th>Situação</th><th>Tentativas</th><th>Protocolo</th><th>Mensagem</th><th></th></tr></thead>
+              <tbody>
+                @for (i of animal.integracoesGov; track i.id) {
+                  <tr>
+                    <td data-titulo="Pedido em" class="text-nowrap">{{ formatarDataHora(i.dataSolicitacao) }}</td>
+                    <td data-titulo="Operação">{{ nomes[i.tipo] || i.tipo }}@if (i.vacinaNome) {<div class="texto-suave">{{ i.vacinaNome }}</div>}</td>
+                    <td data-titulo="Situação"><app-etiqueta [situacao]="i.situacao" /></td>
+                    <td data-titulo="Tentativas">{{ i.tentativas }}</td>
+                    <td data-titulo="Protocolo" class="fonte-mono pequeno">{{ i.protocolo || '-' }}</td>
+                    <td data-titulo="Mensagem" class="pequeno texto-suave celula-mensagem">{{ i.mensagem }}</td>
+                    <td class="text-end">
+                      @if (i.situacao !== 'confirmada') {
+                        <button class="btn btn-sm btn-primario" (click)="enviar(i)" [disabled]="enviando === i.id">
+                          @if (enviando === i.id) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="bi bi-send"></i> } {{ i.tentativas ? 'Reenviar' : 'Enviar' }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    }
+  </section>
+}
+
+<!-- ===== Painéis laterais ===== -->
+@if (formAberto) {
+  <div class="gaveta-fundo" (click)="formAberto = ''"></div>
+  <aside class="gaveta" role="dialog">
+    @switch (formAberto) {
+      @case ('microchip') {
+        <form (ngSubmit)="salvarMicrochip()" novalidate>
+          <div class="gaveta-topo"><h2>{{ animal.microchip ? 'Trocar microchip' : 'Vincular microchip' }}</h2><button type="button" class="btn-icone" (click)="formAberto = ''" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div>
+          <div class="gaveta-corpo">
+            <div class="faixa-info"><i class="bi bi-cpu"></i><div>Microchip RFID padrão ISO: <strong>15 números</strong>, nunca repetido. A leitura física é simulada pela digitação. O vínculo fica no seu nome.</div></div>
+            <label class="form-label" for="microchip">Código do microchip *</label>
+            <input id="microchip" name="microchip" class="form-control form-control-lg fonte-mono" inputmode="numeric" maxlength="17" placeholder="076000000000001" [(ngModel)]="chip.microchip">
+            <div class="form-text">{{ chip.microchip.replace(' ', '').length }}/15 números</div>
+            @if (animal.microchip) {
+              <label class="form-label mt-3" for="motivo">Motivo da troca * <span class="texto-suave">(o chip atual {{ animal.microchip }} fica no histórico)</span></label>
+              <textarea id="motivo" name="motivo" class="form-control" rows="3" maxlength="500" [(ngModel)]="chip.motivo"></textarea>
+            }
+          </div>
+          <div class="gaveta-rodape"><button type="button" class="btn btn-light" (click)="formAberto = ''">Cancelar</button><button type="submit" class="btn btn-primario" [disabled]="salvando">@if (salvando) {<span class="spinner-border spinner-border-sm"></span>} Vincular</button></div>
+        </form>
+      }
+      @case ('consulta') {
+        <form (ngSubmit)="salvarConsulta()" novalidate>
+          <div class="gaveta-topo"><h2>Registrar consulta</h2><button type="button" class="btn-icone" (click)="formAberto = ''" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div>
+          <div class="gaveta-corpo">
+            <div class="row g-3">
+              <div class="col-sm-6"><label class="form-label" for="status">Situação</label>
+                <select id="status" name="status" class="form-select" [(ngModel)]="consulta.status"><option value="realizada">Realizada</option><option value="agendada">Agendada</option><option value="cancelada">Cancelada</option><option value="nao_compareceu">Não compareceu</option></select></div>
+              <div class="col-sm-6"><label class="form-label" for="dataHora">Data e hora <span class="texto-suave">(vazio = agora)</span></label><input id="dataHora" name="dataHora" type="datetime-local" class="form-control" [(ngModel)]="consulta.dataHora"></div>
+              <div class="col-12"><label class="form-label" for="motivoConsulta">Motivo *</label><input id="motivoConsulta" name="motivo" class="form-control" maxlength="255" [(ngModel)]="consulta.motivo"></div>
+              <div class="col-12"><label class="form-label" for="anamnese">Anamnese</label><textarea id="anamnese" name="anamnese" class="form-control" rows="2" [(ngModel)]="consulta.anamnese"></textarea></div>
+              <div class="col-sm-6"><label class="form-label" for="sintomas">Sintomas</label><textarea id="sintomas" name="sintomas" class="form-control" rows="2" [(ngModel)]="consulta.sintomas"></textarea></div>
+              <div class="col-sm-6"><label class="form-label" for="diagnostico">Diagnóstico</label><textarea id="diagnostico" name="diagnostico" class="form-control" rows="2" [(ngModel)]="consulta.diagnostico"></textarea></div>
+              <div class="col-sm-6"><label class="form-label" for="tratamento">Tratamento</label><textarea id="tratamento" name="tratamento" class="form-control" rows="2" [(ngModel)]="consulta.tratamento"></textarea></div>
+              <div class="col-sm-6"><label class="form-label" for="prescricao">Medicamentos</label><textarea id="prescricao" name="prescricao" class="form-control" rows="2" [(ngModel)]="consulta.prescricao"></textarea></div>
+              <div class="col-6"><label class="form-label" for="pesoConsulta">Peso (kg)</label><input id="pesoConsulta" name="peso" class="form-control" inputmode="decimal" [(ngModel)]="consulta.peso"></div>
+              <div class="col-6"><label class="form-label" for="temperatura">Temperatura (°C)</label><input id="temperatura" name="temperatura" class="form-control" inputmode="decimal" [(ngModel)]="consulta.temperatura"></div>
+              <div class="col-12"><label class="form-label" for="obsConsulta">Observações</label><textarea id="obsConsulta" name="observacoes" class="form-control" rows="2" [(ngModel)]="consulta.observacoes"></textarea></div>
+            </div>
+          </div>
+          <div class="gaveta-rodape"><button type="button" class="btn btn-light" (click)="formAberto = ''">Cancelar</button><button type="submit" class="btn btn-primario" [disabled]="salvando">@if (salvando) {<span class="spinner-border spinner-border-sm"></span>} Salvar consulta</button></div>
+        </form>
+      }
+      @case ('vacina') {
+        <form (ngSubmit)="salvarVacina()" novalidate>
+          <div class="gaveta-topo"><h2>Registrar vacina</h2><button type="button" class="btn-icone" (click)="formAberto = ''" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div>
+          <div class="gaveta-corpo">
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="seletor">
+                  <label [class.ativo]="vacina.situacao === 'aplicada'"><input type="radio" name="situacao" value="aplicada" [(ngModel)]="vacina.situacao"> Aplicada agora</label>
+                  <label [class.ativo]="vacina.situacao === 'agendada'"><input type="radio" name="situacao" value="agendada" [(ngModel)]="vacina.situacao"> Agendar</label>
+                </div>
+              </div>
+              <div class="col-sm-6"><label class="form-label" for="nomeVacina">Vacina *</label><input id="nomeVacina" name="nome" class="form-control" maxlength="150" placeholder="V10, Antirrábica..." [(ngModel)]="vacina.nome"></div>
+              <div class="col-sm-6"><label class="form-label" for="tipoVacina">Tipo *</label><input id="tipoVacina" name="tipo" class="form-control" maxlength="50" placeholder="polivalente, inativada..." [(ngModel)]="vacina.tipo"></div>
+              <div class="col-12">
+                <label class="caixa-antirrabica" [class.marcada]="vacina.antirrabica">
+                  <input type="checkbox" name="antirrabica" [(ngModel)]="vacina.antirrabica">
+                  <img src="img/governo.webp" alt="" width="36">
+                  <span><strong>É antirrábica</strong><br><small>Aplicada, é enviada na hora ao governo (obrigatório).</small></span>
+                </label>
+              </div>
+              <div class="col-sm-6"><label class="form-label" for="dataAplicacao">{{ vacina.situacao === 'aplicada' ? 'Data da aplicação' : 'Data agendada *' }}</label><input id="dataAplicacao" name="dataAplicacao" type="date" class="form-control" [(ngModel)]="vacina.dataAplicacao"></div>
+              @if (vacina.situacao === 'aplicada') {
+                <div class="col-sm-6"><label class="form-label" for="dose">Dose *</label><input id="dose" name="dose" class="form-control" maxlength="30" placeholder="1ª dose, reforço..." [(ngModel)]="vacina.dose"></div>
+                <div class="col-sm-6"><label class="form-label" for="fabricante">Fabricante *</label><input id="fabricante" name="fabricante" class="form-control" maxlength="100" [(ngModel)]="vacina.fabricante"></div>
+                <div class="col-sm-6"><label class="form-label" for="lote">Lote *</label><input id="lote" name="lote" class="form-control" maxlength="50" [(ngModel)]="vacina.lote"></div>
+                <div class="col-sm-6"><label class="form-label" for="validadeLote">Validade do lote *</label><input id="validadeLote" name="validadeLote" type="date" class="form-control" [(ngModel)]="vacina.validadeLote"></div>
+                <div class="col-sm-6"><label class="form-label" for="via">Via</label><input id="via" name="via" class="form-control" maxlength="30" placeholder="subcutânea" [(ngModel)]="vacina.via"></div>
+                <div class="col-sm-6"><label class="form-label" for="proximaDose">Próxima dose</label><input id="proximaDose" name="proximaDose" type="date" class="form-control" [(ngModel)]="vacina.proximaDose"></div>
+              }
+              <div class="col-12"><label class="form-label" for="obsVacina">Observações</label><textarea id="obsVacina" name="observacoes" class="form-control" rows="2" [(ngModel)]="vacina.observacoes"></textarea></div>
+            </div>
+          </div>
+          <div class="gaveta-rodape"><button type="button" class="btn btn-light" (click)="formAberto = ''">Cancelar</button><button type="submit" class="btn btn-primario" [disabled]="salvando">@if (salvando) {<span class="spinner-border spinner-border-sm"></span>} Salvar vacina</button></div>
+        </form>
+      }
+    }
+  </aside>
+}

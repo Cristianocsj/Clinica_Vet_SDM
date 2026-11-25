@@ -1,0 +1,121 @@
+<app-cabecalho titulo="Animais" subtitulo="Todo animal tem um tutor responsável. Abra a ficha para microchip, consultas e vacinas." imagem="img/cachorro-andando.webp">
+  <button class="btn btn-primario" (click)="abrir(null)"><i class="bi bi-plus-lg"></i> Novo animal</button>
+</app-cabecalho>
+
+@if (tutorDoFiltro) {
+  <div class="faixa-info">
+    <i class="bi bi-funnel"></i>
+    <div class="flex-grow-1">Mostrando os animais de <strong>{{ tutorDoFiltro.nome }}</strong>.</div>
+    <button class="btn btn-sm btn-claro" (click)="verTodos()">Ver todos</button>
+  </div>
+}
+
+<section class="cartao">
+  <form class="filtros" (ngSubmit)="carregar()">
+    <div class="campo-icone flex-grow-1">
+      <i class="bi bi-search"></i>
+      <input class="form-control" name="busca" [(ngModel)]="busca" placeholder="Buscar por animal, tutor ou microchip">
+    </div>
+    <select class="form-select w-auto" name="especie" [(ngModel)]="especieFiltro" (change)="carregar()">
+      <option value="">Todas as espécies</option>
+      @for (e of especies; track e.id) { <option [value]="e.id">{{ e.nome }}</option> }
+    </select>
+    <select class="form-select w-auto" name="situacao" [(ngModel)]="situacao" (change)="carregar()">
+      <option value="ativo">Ativos</option><option value="inativo">Inativos</option><option value="">Todos</option>
+    </select>
+    <button class="btn btn-claro" type="submit">Buscar</button>
+  </form>
+
+  @if (!animais.length && !carregando) {
+    <div class="vazio"><img src="img/patinhas.webp" alt="" width="56"> Nenhum animal encontrado.</div>
+  } @else {
+    <div class="grade-pets">
+      @for (a of animais; track a.id) {
+        <article class="cartao-pet" [class.inativo]="a.situacao !== 'ativo'">
+          <a [routerLink]="['/animais', a.id]" class="pet-topo">
+            <img [src]="imagemEspecie(a.especieNome)" [alt]="a.especieNome">
+            <app-etiqueta [situacao]="a.situacao" />
+          </a>
+          <div class="pet-corpo">
+            <h3><a [routerLink]="['/animais', a.id]">{{ a.nome }}</a></h3>
+            <p class="texto-suave">{{ a.especieNome }}{{ a.racaNome ? ' · ' + a.racaNome : '' }} · {{ textoSexo(a.sexo) }}</p>
+            <p class="pet-tutor"><i class="bi bi-person"></i> {{ a.tutorNome }}</p>
+            @if (a.microchip) {
+              <span class="chip-ok"><i class="bi bi-cpu"></i> {{ a.microchip }}</span>
+            } @else {
+              <span class="chip-sem"><i class="bi bi-cpu"></i> sem microchip</span>
+            }
+          </div>
+          <div class="pet-acoes">
+            <a class="btn btn-sm btn-primario flex-grow-1" [routerLink]="['/animais', a.id]"><i class="bi bi-clipboard2-pulse"></i> Ficha</a>
+            @if (a.situacao === 'ativo') {
+              <button class="btn btn-sm btn-claro" (click)="abrir(a)" title="Editar"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-claro texto-perigo" (click)="inativar(a)" title="Inativar"><i class="bi bi-archive"></i></button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+@if (formAberto) {
+  <div class="gaveta-fundo" (click)="formAberto = false"></div>
+  <aside class="gaveta" role="dialog" aria-label="Formulário de animal">
+    <form (ngSubmit)="salvar()" novalidate>
+      <div class="gaveta-topo">
+        <h2>{{ animalEmEdicao ? 'Editar ' + animalEmEdicao.nome : 'Novo animal' }}</h2>
+        <button type="button" class="btn-icone" (click)="formAberto = false" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="gaveta-corpo">
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label" for="nomeAnimal">Nome *</label><input id="nomeAnimal" name="nome" class="form-control" maxlength="100" [(ngModel)]="form.nome"></div>
+          <div class="col-12"><label class="form-label" for="tutorId">Tutor *</label>
+            <select id="tutorId" name="tutorId" class="form-select" [(ngModel)]="form.tutorId">
+              <option value="">Escolha o tutor</option>
+              @for (t of tutores; track t.id) { <option [ngValue]="t.id">{{ t.nome }}{{ t.cpf ? ' (CPF ' + formatarCpf(t.cpf) + ')' : '' }}</option> }
+            </select>
+          </div>
+          <div class="col-sm-6"><label class="form-label" for="especieId">Espécie *</label>
+            <select id="especieId" name="especieId" class="form-select" [(ngModel)]="form.especieId" (ngModelChange)="carregarRacas($event)">
+              <option value="">Escolha a espécie</option>
+              @for (e of especies; track e.id) { <option [ngValue]="e.id">{{ e.nome }}</option> }
+            </select>
+          </div>
+          <div class="col-sm-6"><label class="form-label" for="racaId">Raça</label>
+            <select id="racaId" name="racaId" class="form-select" [(ngModel)]="form.racaId" [disabled]="!form.especieId">
+              <option value="">{{ form.especieId ? 'Não informada' : 'Escolha a espécie primeiro' }}</option>
+              @for (r of racas; track r.id) { <option [ngValue]="r.id">{{ r.nome }}</option> }
+            </select>
+          </div>
+          <div class="col-sm-4"><label class="form-label" for="sexo">Sexo</label>
+            <select id="sexo" name="sexo" class="form-select" [(ngModel)]="form.sexo"><option value="">Não informado</option><option value="M">Macho</option><option value="F">Fêmea</option></select>
+          </div>
+          <div class="col-sm-4"><label class="form-label" for="cor">Cor</label><input id="cor" name="cor" class="form-control" maxlength="50" [(ngModel)]="form.cor"></div>
+          <div class="col-sm-4"><label class="form-label" for="peso">Peso (kg)</label><input id="peso" name="peso" class="form-control" inputmode="decimal" placeholder="12,5" [(ngModel)]="form.peso"></div>
+
+          <div class="col-12">
+            <label class="form-label d-block">Nascimento *</label>
+            <div class="seletor">
+              <label [class.ativo]="form.tipoNascimento === 'data'"><input type="radio" name="tipoNascimento" value="data" [(ngModel)]="form.tipoNascimento"> Data de nascimento</label>
+              <label [class.ativo]="form.tipoNascimento === 'idade'"><input type="radio" name="tipoNascimento" value="idade" [(ngModel)]="form.tipoNascimento"> Idade estimada</label>
+            </div>
+          </div>
+          @if (form.tipoNascimento === 'data') {
+            <div class="col-sm-6"><label class="form-label" for="dataNascimento">Data</label><input id="dataNascimento" name="dataNascimento" type="date" class="form-control" [(ngModel)]="form.dataNascimento"></div>
+          } @else {
+            <div class="col-6 col-sm-3"><label class="form-label" for="idadeAnos">Anos</label><input id="idadeAnos" name="idadeAnos" type="number" min="0" class="form-control" [(ngModel)]="form.idadeAnos"></div>
+            <div class="col-6 col-sm-3"><label class="form-label" for="idadeMeses">Meses</label><input id="idadeMeses" name="idadeMeses" type="number" min="0" max="11" class="form-control" [(ngModel)]="form.idadeMeses"></div>
+          }
+        </div>
+        @if (animalEmEdicao?.microchip) {
+          <div class="faixa-info mt-4 mb-0"><img src="img/governo.webp" alt="" width="36"> Este animal tem microchip: ao salvar, a alteração é enviada ao governo.</div>
+        }
+      </div>
+      <div class="gaveta-rodape">
+        <button type="button" class="btn btn-light" (click)="formAberto = false">Cancelar</button>
+        <button type="submit" class="btn btn-primario" [disabled]="salvando">@if (salvando) {<span class="spinner-border spinner-border-sm"></span>} Salvar animal</button>
+      </div>
+    </form>
+  </aside>
+}

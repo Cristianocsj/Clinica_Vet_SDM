@@ -1,0 +1,38 @@
+<app-cabecalho titulo="Próximas doses" subtitulo="Doses previstas e vacinas agendadas, com o contato do tutor para lembrar." imagem="img/calendario.webp" />
+
+<section class="cartao">
+  <div class="filtros">
+    <span class="texto-suave">Mostrar os próximos</span>
+    <div class="pilulas">
+      @for (d of opcoesDias; track d) {
+        <button type="button" class="pilula" [class.ativa]="dias === d" (click)="dias = d; carregar()">{{ d }} dias</button>
+      }
+    </div>
+    @if (resposta) { <span class="ms-auto texto-suave">{{ resposta.total }} dose(s) até {{ formatarData(resposta.ate) }}</span> }
+  </div>
+
+  @if (carregando && !resposta) {
+    <div class="vazio"><span class="spinner-border spinner-border-sm"></span> Carregando...</div>
+  } @else if (resposta && !resposta.doses.length) {
+    <div class="vazio"><img src="img/osso.webp" alt="" width="56"> Nenhuma dose no período.</div>
+  } @else if (resposta) {
+    <div class="tabela-responsiva">
+      <table class="tabela">
+        <thead><tr><th>Data</th><th>Situação</th><th>Animal</th><th>Vacina</th><th>Origem</th><th>Tutor</th><th>Contato</th></tr></thead>
+        <tbody>
+          @for (d of resposta.doses; track $index) {
+            <tr>
+              <td data-titulo="Data" class="text-nowrap fw-bold">{{ formatarData(d.dataPrevista) }}</td>
+              <td data-titulo="Situação"><app-etiqueta [situacao]="d.status" /></td>
+              <td data-titulo="Animal"><a [routerLink]="['/animais', d.animalId]">{{ d.animalNome }}</a></td>
+              <td data-titulo="Vacina">{{ d.vacina }} @if (d.antirrabica) { <span class="etiqueta etiqueta-escura">antirrábica</span> }</td>
+              <td data-titulo="Origem" class="texto-suave">{{ d.origem === 'agendada' ? 'vacina agendada' : 'próxima dose' }}</td>
+              <td data-titulo="Tutor">{{ d.tutorNome }}</td>
+              <td data-titulo="Contato" class="texto-suave">{{ d.tutorTelefone }}@if (d.tutorEmail) {<br>{{ d.tutorEmail }}}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

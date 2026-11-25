@@ -1,0 +1,55 @@
+<app-cabecalho titulo="Envios ao governo" subtitulo="API governamental simulada: cadastro do animal com microchip e vacinas antirrábicas." imagem="img/governo.webp">
+  <button class="btn btn-claro" (click)="carregar()" [disabled]="carregando"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
+</app-cabecalho>
+
+<div class="faixa-info">
+  <img src="img/cao-guia.webp" alt="" width="48">
+  <div>
+    Toda <strong>antirrábica aplicada</strong> é enviada na hora. Se o governo estiver fora do ar, o envio fica <app-etiqueta situacao="pendente" />
+    e é tentado de novo sozinho a cada minuto (até 5 vezes), ou pelo botão <strong>Reenviar</strong>. A mesma chave é usada em todas as tentativas, então o governo não duplica.
+  </div>
+</div>
+
+<section class="cartao">
+  <div class="filtros">
+    <div class="pilulas">
+      @for (f of filtros; track f.valor) {
+        <button type="button" class="pilula" [class.ativa]="situacao === f.valor" (click)="situacao = f.valor; carregar()">{{ f.nome }}</button>
+      }
+    </div>
+    <span class="ms-auto texto-suave">{{ lista.length }} envio(s)</span>
+  </div>
+
+  @if (!lista.length && !carregando) {
+    <div class="vazio"><img src="img/governo.webp" alt="" width="56"> Nenhum envio encontrado.</div>
+  } @else {
+    <div class="tabela-responsiva">
+      <table class="tabela">
+        <thead><tr><th>Nº</th><th>Pedido em</th><th>Operação</th><th>Animal</th><th>Microchip</th><th>Situação</th><th>Tentativas</th><th>Protocolo</th><th>Mensagem</th><th></th></tr></thead>
+        <tbody>
+          @for (i of lista; track i.id) {
+            <tr>
+              <td data-titulo="Nº" class="fw-bold">{{ i.id }}</td>
+              <td data-titulo="Pedido em" class="text-nowrap">{{ formatarDataHora(i.dataSolicitacao) }}</td>
+              <td data-titulo="Operação">{{ nomes[i.tipo] || i.tipo }}@if (i.vacinaNome) {<div class="texto-suave">{{ i.vacinaNome }} · {{ formatarData(i.dataAplicacao) }}</div>}</td>
+              <td data-titulo="Animal"><a [routerLink]="['/animais', i.animalId]">{{ i.animalNome }}</a></td>
+              <td data-titulo="Microchip" class="text-nowrap fonte-mono">@if (i.microchip) { {{ i.microchip }} } @else { <span class="texto-perigo">sem chip</span> }</td>
+              <td data-titulo="Situação"><app-etiqueta [situacao]="i.situacao" /></td>
+              <td data-titulo="Tentativas">{{ i.tentativas }}</td>
+              <td data-titulo="Protocolo" class="text-nowrap fonte-mono pequeno">{{ i.protocolo || '-' }}</td>
+              <td data-titulo="Mensagem" class="pequeno texto-suave celula-mensagem">{{ i.mensagem }}</td>
+              <td class="text-end">
+                @if (i.situacao !== 'confirmada') {
+                  <button class="btn btn-sm btn-primario" (click)="enviar(i)" [disabled]="enviando === i.id">
+                    @if (enviando === i.id) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="bi bi-send"></i> }
+                    {{ i.tentativas ? 'Reenviar' : 'Enviar' }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

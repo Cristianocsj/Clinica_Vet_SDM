@@ -4,16 +4,17 @@
   },
   "scripts": {
     "start": "node api_clinica/server.js",
-    "front": "node frontend/servidor.js",
+    "front": "npm --prefix frontend-angular start",
     "banco": "node api_clinica/database/iniciarBanco.js",
     "banco:recriar": "node api_clinica/database/iniciarBanco.js --recriar",
     "banco:demo": "node api_clinica/database/iniciarBanco.js --demo",
-    "banco:recriar:demo": "node api_clinica/database/iniciarBanco.js --recriar --demo"
+    "banco:recriar:demo": "node api_clinica/database/iniciarBanco.js --recriar --demo",
+    "front:instalar": "npm --prefix frontend-angular install",
+    "front:antigo": "node frontend/servidor.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
-    "express": "^5.3.0",
-    "mysql2": "^3.24.6"
+    "express": "^5.3.0"
   }
 }
