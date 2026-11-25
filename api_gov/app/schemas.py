@@ -40,8 +40,9 @@ class OperacaoAnimalOut(BaseModel):
     repetida: bool = False
 
 class AnimalUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     chave_idempotencia: str = Field(min_length=1, max_length=100)
-    novo_microchip: Optional[str] = Field(default=None, pattern=r"^\d{15}$")
     nome: str = Field(min_length=1, max_length=100)
     especie: str = Field(min_length=1, max_length=100)
     raca: Optional[str] = Field(default=None, max_length=100)
@@ -49,6 +50,14 @@ class AnimalUpdate(BaseModel):
     data_nascimento: Optional[date] = None
     tutor_nome: str = Field(min_length=1, max_length=150)
     tutor_cpf: str = Field(pattern=r"^\d{11}$")
+
+
+class TrocaMicrochip(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chave_idempotencia: str = Field(min_length=1, max_length=100)
+    novo_microchip: str = Field(pattern=r"^\d{15}$")
+
 
 class DadosAnimal(BaseModel):
     nome: str = Field(min_length=1, max_length=100)

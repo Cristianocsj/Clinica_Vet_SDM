@@ -5,7 +5,13 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import AnimalGoverno, Operacao
 from ..protocolo import gerar_protocolo
-from ..schemas import AnimalCreate, AnimalUpdate, AnimalOut, OperacaoAnimalOut
+from ..schemas import (
+    AnimalCreate,
+    AnimalOut,
+    AnimalUpdate,
+    OperacaoAnimalOut,
+    TrocaMicrochip,
+)
 
 router = APIRouter(prefix="/api/governo/animais", tags=["Animais"])
 
@@ -41,42 +47,33 @@ def cadastrar_animal(
         return {
             "protocolo": anterior.protocolo,
             "situacao": anterior.situacao,
-            "mensagem": anterior.mensagem,
+            "mensagem": "Solicitação já processada anteriormente; nenhuma sincronização foi feita nesta repetição.",
             "animal": animal,
             "repetida": True,
         }
 
     animal = buscar_por_microchip(db, dados.microchip)
-    animal_criado = animal is None
-    if animal_criado:
-        animal = AnimalGoverno(
-            **dados.model_dump(exclude={"chave_idempotencia"})
+    if animal:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Já existe um animal cadastrado com o microchip {dados.microchip}.",
         )
-        db.add(animal)
-    else:
-        for campo, valor in dados.model_dump(
-            exclude={"chave_idempotencia", "microchip"}
-        ).items():
-            setattr(animal, campo, valor)
 
-    mensagem = (
-        f"Animal com microchip {dados.microchip} cadastrado."
-        if animal_criado
-        else f"Animal com microchip {dados.microchip} já existia; dados sincronizados."
+    animal = AnimalGoverno(
+        **dados.model_dump(exclude={"chave_idempotencia"})
     )
+    db.add(animal)
     operacao = Operacao(
         protocolo=gerar_protocolo(),
         chave_idempotencia=dados.chave_idempotencia,
         tipo="CADASTRO_ANIMAL",
         situacao="concluida",
-        mensagem=mensagem,
+        mensagem=f"Animal com microchip {dados.microchip} cadastrado.",
     )
     db.add(operacao)
     db.commit()
     db.refresh(animal)
 
-    if not animal_criado:
-        response.status_code = status.HTTP_200_OK
     return {
         "protocolo": operacao.protocolo,
         "situacao": operacao.situacao,
@@ -107,25 +104,11 @@ def atualizar_animal(
     )
     if anterior:
         if anterior.tipo != "ATUALIZACAO_ANIMAL":
-            animal = (
-                buscar_por_microchip(db, dados.novo_microchip)
-                if anterior.tipo == "CADASTRO_ANIMAL" and dados.novo_microchip
-                else None
-            )
-            if animal:
-                response.status_code = status.HTTP_200_OK
-                return {
-                    "protocolo": anterior.protocolo,
-                    "situacao": anterior.situacao,
-                    "mensagem": anterior.mensagem,
-                    "animal": animal,
-                    "repetida": True,
-                }
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A chave de idempotência já foi usada em outra operação.",
             )
-        animal = buscar_por_microchip(db, dados.novo_microchip or microchip)
+        animal = buscar_por_microchip(db, microchip)
         if not animal:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -147,18 +130,7 @@ def atualizar_animal(
             detail=f"Nenhum animal encontrado com o microchip {microchip}.",
         )
 
-    if dados.novo_microchip and dados.novo_microchip != microchip:
-        existente = buscar_por_microchip(db, dados.novo_microchip)
-        if existente and existente.id != animal.id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Já existe um animal cadastrado com o microchip {dados.novo_microchip}.",
-            )
-        animal.microchip = dados.novo_microchip
-
-    for campo, valor in dados.model_dump(
-        exclude={"chave_idempotencia", "novo_microchip"}
-    ).items():
+    for campo, valor in dados.model_dump(exclude={"chave_idempotencia"}).items():
         setattr(animal, campo, valor)
 
     operacao = Operacao(
@@ -167,6 +139,77 @@ def atualizar_animal(
         tipo="ATUALIZACAO_ANIMAL",
         situacao="concluida",
         mensagem=f"Dados do animal com microchip {microchip} atualizados.",
+    )
+    db.add(operacao)
+    db.commit()
+    db.refresh(animal)
+
+    return {
+        "protocolo": operacao.protocolo,
+        "situacao": operacao.situacao,
+        "mensagem": operacao.mensagem,
+        "animal": animal,
+        "repetida": False,
+    }
+
+
+@router.put("/{microchip}/microchip", response_model=OperacaoAnimalOut)
+def trocar_microchip(
+    microchip: str,
+    dados: TrocaMicrochip,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    anterior = db.scalar(
+        select(Operacao).where(
+            Operacao.chave_idempotencia == dados.chave_idempotencia
+        )
+    )
+    if anterior:
+        if anterior.tipo != "TROCA_MICROCHIP":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A chave de idempotência já foi usada em outra operação.",
+            )
+        animal = buscar_por_microchip(db, dados.novo_microchip)
+        if not animal:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A chave já foi processada, mas o animal não foi encontrado.",
+            )
+        response.status_code = status.HTTP_200_OK
+        return {
+            "protocolo": anterior.protocolo,
+            "situacao": anterior.situacao,
+            "mensagem": anterior.mensagem,
+            "animal": animal,
+            "repetida": True,
+        }
+
+    animal = buscar_por_microchip(db, microchip)
+    if not animal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Nenhum animal encontrado com o microchip {microchip}.",
+        )
+    if dados.novo_microchip == microchip:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="O novo microchip deve ser diferente do microchip atual.",
+        )
+    if buscar_por_microchip(db, dados.novo_microchip):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Já existe um animal cadastrado com o microchip {dados.novo_microchip}.",
+        )
+
+    animal.microchip = dados.novo_microchip
+    operacao = Operacao(
+        protocolo=gerar_protocolo(),
+        chave_idempotencia=dados.chave_idempotencia,
+        tipo="TROCA_MICROCHIP",
+        situacao="concluida",
+        mensagem=f"Microchip do animal alterado de {microchip} para {dados.novo_microchip}.",
     )
     db.add(operacao)
     db.commit()

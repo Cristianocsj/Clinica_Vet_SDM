@@ -215,12 +215,21 @@ function montarChamada(d) {
     }
     if (d.tipo === 'ATUALIZACAO_ANIMAL') {
         const chipAnterior = d.microchipAnterior || d.microchip;
+        if (chipAnterior !== d.microchip) {
+            return {
+                metodo: 'PUT',
+                caminho: `/animais/${encodeURIComponent(chipAnterior)}/microchip`,
+                corpo: {
+                    chave_idempotencia: d.chave,
+                    novo_microchip: d.microchip,
+                },
+            };
+        }
         return {
             metodo: 'PUT',
             caminho: `/animais/${encodeURIComponent(chipAnterior)}`,
             corpo: {
                 chave_idempotencia: d.chave,
-                ...(chipAnterior !== d.microchip ? { novo_microchip: d.microchip } : {}),
                 ...montarAnimal(d),
             },
         };

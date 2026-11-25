@@ -2,6 +2,8 @@ FLUXO DE FUNCIONAMENTO DO SISTEMA
 
 -Frontend → API privada (REST): o frontend só conversa com a API privada, nunca direto com o banco, com o governo ou com o ViaCEP.
 
+npm.cmd run front -> TERMINAL
+
 -API privada → ViaCEP (HTTP): a consulta de CEP acontece aqui, com o tratamento de CEP inexistente, timeout e indisponibilidade.
 
 -API privada → Banco da clínica: as 10 tabelas do seu MER ficam aqui. É a API que valida o CPF, o microchip e a compatibilidade entre raça e espécie.

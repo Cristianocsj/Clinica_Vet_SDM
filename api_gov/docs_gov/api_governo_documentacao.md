@@ -93,8 +93,8 @@ Registra cada pedido recebido e o protocolo gerado.
 |---|---|---|
 | id | inteiro | chave primária |
 | protocolo | texto (30) | **único** |
-| chave_idempotencia | texto (100) | único; usada em cadastros, atualizações e vacinações para impedir duplicidade |
-| tipo | texto (30) | CADASTRO_ANIMAL, ATUALIZACAO_ANIMAL ou VACINACAO_ANTIRRABICA |
+| chave_idempotencia | texto (100) | único; usada em cadastros, atualizações, trocas de microchip e vacinações para impedir duplicidade |
+| tipo | texto (30) | CADASTRO_ANIMAL, ATUALIZACAO_ANIMAL, TROCA_MICROCHIP ou VACINACAO_ANTIRRABICA |
 | situacao | texto (20) | sempre `concluida`: só operações processadas com sucesso são gravadas |
 | mensagem | texto (255) | descrição do resultado |
 | criado_em | data e hora | |
@@ -119,7 +119,8 @@ Registra cada pedido recebido e o protocolo gerado.
 | GET | `/api/governo/saude` | Verifica se a API está no ar |
 | POST | `/api/governo/animais` | Cadastra um animal |
 | GET | `/api/governo/animais/{microchip}` | Consulta um animal pelo microchip |
-| PUT | `/api/governo/animais/{microchip}` | Atualiza os dados de um animal |
+| PUT | `/api/governo/animais/{microchip}` | Atualiza os dados cadastrais do animal |
+| PUT | `/api/governo/animais/{microchip}/microchip` | Troca somente o microchip |
 | POST | `/api/governo/vacinacoes-antirrabicas` | Recebe uma vacinação antirrábica |
 | GET | `/api/governo/operacoes/{protocolo}` | Consulta uma operação pelo protocolo |
 | GET | `/api/governo/simulacao` | Mostra o estado da simulação de falhas |
@@ -145,11 +146,12 @@ Registra cada pedido recebido e o protocolo gerado.
 | Código | Quando |
 |---|---|
 | 201 | Animal cadastrado. Retorna o protocolo e os dados do animal |
-| 200 | Animal já existia ou a mesma chave foi reenviada; retorna o protocolo e os dados |
+| 200 | A mesma chave de idempotência foi reenviada; retorna a operação anterior |
+| 409 | O microchip já está cadastrado com uma nova chave de idempotência |
 | 422 | Dados inválidos (por exemplo, microchip sem 15 números) |
 
-Cada cadastro exige uma chave de idempotência. Repetir a mesma chave devolve a operação anterior sem criar outro registro.
-Se o microchip já existir (por exemplo, incluído junto com uma vacinação), os dados são sincronizados no mesmo animal.
+Cada cadastro exige uma chave de idempotência. Repetir a mesma chave devolve a operação anterior sem criar outro registro ou sincronizar dados; a resposta informa que é uma repetição.
+Se o microchip já existir, o cadastro é recusado com `409 Conflict`; os dados existentes não são alterados. Uma vacinação pode continuar sendo registrada para um animal existente.
 
 ### 6.2 Consultar animal
 `GET /api/governo/animais/{microchip}`
@@ -162,12 +164,23 @@ Se o microchip já existir (por exemplo, incluído junto com uma vacinação), o
 ### 6.3 Atualizar animal
 `PUT /api/governo/animais/{microchip}`
 
-O corpo tem os dados do cadastro, a chave de idempotência e, opcionalmente,
-`novo_microchip`. Quando presente, o registro do mesmo animal recebe o novo
-microchip; as vacinações continuam relacionadas ao registro existente.
+O parâmetro da URL identifica o microchip atual. O corpo contém somente a chave
+de idempotência e os dados cadastrais; não aceita `novo_microchip`.
+
+```json
+{
+  "chave_idempotencia": "ATUALIZACAO-1",
+  "nome": "Rex",
+  "especie": "Cão",
+  "raca": "Labrador",
+  "sexo": "M",
+  "data_nascimento": "2022-03-15",
+  "tutor_nome": "Maria Silva",
+  "tutor_cpf": "12345678909"
+}
+```
+
 Repetir a mesma chave devolve o protocolo anterior sem aplicar a atualização de novo.
-Se a chave já tiver cadastrado o animal pela recuperação da clínica, a repetição da atualização
-devolve esse mesmo cadastro quando `novo_microchip` identifica o animal, sem criar outro registro.
 
 Se a clínica receber 404 ao atualizar porque o chip anterior não está cadastrado, ela envia o cadastro
 normal do animal pela rota `POST /api/governo/animais`, usando o chip atual e a mesma chave de idempotência.
@@ -176,10 +189,33 @@ normal do animal pela rota `POST /api/governo/animais`, usando o chip atual e a 
 |---|---|
 | 200 | Animal atualizado. Retorna o novo protocolo e os dados |
 | 404 | Nenhum animal com esse microchip |
-| 409 | O novo microchip já pertence a outro animal ou a chave foi usada em outra operação |
-| 422 | Dados inválidos |
+| 409 | A chave foi usada em outra operação |
+| 422 | Dados inválidos ou campo não permitido (como `novo_microchip`) |
 
-### 6.4 Receber vacinação antirrábica
+### 6.4 Trocar microchip
+`PUT /api/governo/animais/{microchip}/microchip`
+
+O microchip anterior é informado na URL. O corpo contém apenas a chave de
+idempotência e o novo microchip; os demais dados do animal não são alterados.
+
+```json
+{
+  "chave_idempotencia": "TROCA-CHIP-1",
+  "novo_microchip": "774587962275297"
+}
+```
+
+| Código | Quando |
+|---|---|
+| 200 | A mesma troca foi reenviada com a mesma chave de idempotência |
+| 404 | Nenhum animal possui o microchip anterior |
+| 409 | O novo microchip já pertence a outro animal, é igual ao atual ou a chave foi usada em outra operação |
+| 422 | Dados inválidos ou campos adicionais no corpo |
+
+Ao concluir a troca, o registro do animal passa a usar o novo microchip; as
+vacinações continuam ligadas ao mesmo animal.
+
+### 6.5 Receber vacinação antirrábica
 `POST /api/governo/vacinacoes-antirrabicas`
 
 ```json
@@ -233,7 +269,7 @@ tentativas de envio da mesma vacina** (sugestão: `VACINA-<id_vacina>`). Em
 uma repetição, o governo ignora os demais campos e devolve o resultado da
 primeira vez.
 
-### 6.5 Consultar operação
+### 6.6 Consultar operação
 `GET /api/governo/operacoes/{protocolo}`
 
 | Código | Quando |
