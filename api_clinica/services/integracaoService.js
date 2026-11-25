@@ -314,7 +314,7 @@ async function enviar(idIntegracao) {
         // Fora do ar / timeout / 503: o envio fica pendente para nova tentativa
         resultado.situacao = 'pendente';
         resultado.respondeu = resposta.status === 0 ? 0 : 1;
-        resultado.mensagem = `Governo indisponível: ${mensagemDoGoverno(resposta)}. Tente de novo mais tarde.`;
+        resultado.mensagem = `Governo indisponível: ${mensagemDoGoverno(resposta).replace(/\.$/, '')}. Tente de novo mais tarde.`;
     } else {
         // 4xx: o governo recusou os dados (ex.: 422)
         resultado.situacao = 'com_falha';
@@ -325,4 +325,31 @@ async function enviar(idIntegracao) {
     return buscar(id);
 }
 
-module.exports = { listar, buscar, enviar };
+// Envia na hora as comunicações pendentes de um animal (cadastro, atualização e vacinas),
+// na ordem certa. Usado logo depois de vincular chip, alterar o animal ou registrar
+// a antirrábica (RF24). Se o governo estiver fora do ar, a operação só fica pendente
+// e o reenvio automático (reenvioAutomatico.js) ou o botão Reenviar tentam de novo.
+const sqlPendentesDoAnimal = db.prepare(`
+    SELECT INGO_ID_INTEGRACAO AS id
+      FROM VET_INTEGRACAO_GOV
+     WHERE ANIM_ID_ANIMAL = ?
+       AND INGO_DS_SITUACAO IN ('pendente', 'enviada')
+     ORDER BY CASE INGO_DS_TIPO_OPERACAO
+                  WHEN 'CADASTRO_ANIMAL' THEN 0
+                  WHEN 'ATUALIZACAO_ANIMAL' THEN 1
+                  ELSE 2
+              END,
+              INGO_ID_INTEGRACAO
+`);
+
+async function enviarPendentesDoAnimal(animalId) {
+    for (const { id } of sqlPendentesDoAnimal.all(animalId)) {
+        try {
+            await enviar(id);
+        } catch (erro) {
+            console.error(`[envio imediato] comunicação ${id} não foi enviada:`, erro.message);
+        }
+    }
+}
+
+module.exports = { listar, buscar, enviar, enviarPendentesDoAnimal };

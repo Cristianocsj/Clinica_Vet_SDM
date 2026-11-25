@@ -2,16 +2,21 @@
 const express = require('express');
 const router = express.Router();
 const vacinaService = require('../services/vacinaService');
+const integracaoService = require('../services/integracaoService');
 const { responderErro } = require('../utils/erroApi');
 
 // POST /api/vacinas
 // Aplicada: { animalId, nome, tipo, fabricante, lote, validadeLote, dose,
 //             dataAplicacao?, via?, proximaDose?, antirrabica?, observacoes? }
 // Agendada: { animalId, nome, tipo, situacao: "agendada", dataAplicacao, ... }
-// Antirrábica aplicada fica com o envio ao governo PENDENTE (campo integracaoGov).
-router.post('/vacinas', (req, res) => {
+// Antirrábica aplicada: a clínica já tenta enviar ao governo na hora (RF24).
+// Se o governo falhar, a vacina continua salva e o envio fica PENDENTE (campo integracaoGov).
+router.post('/vacinas', async (req, res) => {
     try {
-        return res.status(201).json(vacinaService.registrar(req.body, req.veterinario.id));
+        const vacina = vacinaService.registrar(req.body, req.veterinario.id);
+        if (!vacina.integracaoGov) return res.status(201).json(vacina);
+        await integracaoService.enviarPendentesDoAnimal(vacina.animalId);
+        return res.status(201).json(vacinaService.buscar(vacina.id));
     } catch (erro) {
         return responderErro(res, erro);
     }

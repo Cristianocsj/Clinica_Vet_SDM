@@ -228,4 +228,9 @@ function proximasDoses(query) {
     return { ate: limite, total: doses.length, doses };
 }
 
-module.exports = { registrar, historico, proximasDoses };
+// Uma vacina pelo id (usada para devolver a situação do envio depois de tentar mandar ao governo)
+function buscar(id) {
+    return formatar(sqlBuscar.get(id));
+}
+
+module.exports = { registrar, buscar, historico, proximasDoses };
