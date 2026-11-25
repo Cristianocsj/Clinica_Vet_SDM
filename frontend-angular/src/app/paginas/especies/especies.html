@@ -1,0 +1,69 @@
+<app-cabecalho titulo="Espécies e raças" subtitulo="Catálogo usado no cadastro de animais. Toda espécie nova já ganha a raça &quot;Sem raça definida&quot;." imagem="img/etiqueta.webp" />
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <section class="cartao">
+      <h2 class="cartao-titulo-simples"><i class="bi bi-diagram-3"></i> Espécies</h2>
+      <form class="form-compacto" (ngSubmit)="salvarEspecie()">
+        <p class="texto-suave mb-2">{{ especie.id ? 'Editando: ' + especie.nome : 'Nova espécie' }}</p>
+        <input class="form-control" name="nomeEspecie" placeholder="Nome *" maxlength="50" [(ngModel)]="especie.nome">
+        <input class="form-control" name="descricaoEspecie" placeholder="Descrição" maxlength="255" [(ngModel)]="especie.descricao">
+        <div class="d-flex gap-2"><button class="btn btn-primario btn-sm" type="submit">Salvar</button>@if (especie.id) {<button class="btn btn-light btn-sm" type="button" (click)="limparEspecie()">Cancelar</button>}</div>
+      </form>
+      <ul class="lista-itens">
+        @for (e of especies; track e.id) {
+          <li [class.inativo]="e.situacao !== 'ativo'">
+            <img [src]="imagemEspecie(e.nome)" alt="" width="40" height="40">
+            <div class="flex-grow-1"><strong>{{ e.nome }}</strong><div class="texto-suave pequeno">{{ e.descricao }}</div></div>
+            <app-etiqueta [situacao]="e.situacao" />
+            @if (e.situacao === 'ativo') {
+              <button class="btn btn-sm btn-claro" (click)="editarEspecie(e)" title="Editar"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-claro texto-perigo" (click)="inativarEspecie(e)" title="Inativar"><i class="bi bi-archive"></i></button>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+  <div class="col-lg-7">
+    <section class="cartao">
+      <div class="cartao-titulo">
+        <h2><i class="bi bi-tags"></i> Raças</h2>
+        <select class="form-select form-select-sm w-auto" name="filtroRacas" [(ngModel)]="filtroRacas" (change)="carregarRacas()">
+          <option value="">Todas as espécies</option>
+          @for (e of especies; track e.id) { <option [value]="e.id">{{ e.nome }}</option> }
+        </select>
+      </div>
+      <form class="form-compacto" (ngSubmit)="salvarRaca()">
+        <p class="texto-suave mb-2">{{ raca.id ? 'Editando: ' + raca.nome + ' (' + raca.especieNome + ')' : 'Nova raça' }}</p>
+        <div class="d-flex flex-wrap gap-2">
+          <select class="form-select w-auto" name="especieRaca" [(ngModel)]="raca.especieId" [disabled]="!!raca.id">
+            <option value="">Espécie *</option>
+            @for (e of especiesAtivas; track e.id) { <option [ngValue]="e.id">{{ e.nome }}</option> }
+          </select>
+          <input class="form-control flex-grow-1 w-auto" name="nomeRaca" placeholder="Nome *" maxlength="80" [(ngModel)]="raca.nome">
+        </div>
+        <input class="form-control" name="descricaoRaca" placeholder="Descrição" maxlength="255" [(ngModel)]="raca.descricao">
+        <div class="d-flex gap-2"><button class="btn btn-primario btn-sm" type="submit">Salvar</button>@if (raca.id) {<button class="btn btn-light btn-sm" type="button" (click)="limparRaca()">Cancelar</button>}</div>
+      </form>
+      <div class="tabela-responsiva">
+        <table class="tabela">
+          <thead><tr><th>Raça</th><th>Espécie</th><th>Situação</th><th></th></tr></thead>
+          <tbody>
+            @for (r of racas; track r.id) {
+              <tr>
+                <td data-titulo="Raça"><strong>{{ r.nome }}</strong><div class="texto-suave pequeno">{{ r.descricao }}</div></td>
+                <td data-titulo="Espécie">{{ r.especieNome }}</td>
+                <td data-titulo="Situação"><app-etiqueta [situacao]="r.situacao" /></td>
+                <td class="acoes">@if (r.situacao === 'ativo') {
+                  <button class="btn btn-sm btn-claro" (click)="editarRaca(r)" title="Editar"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-claro texto-perigo" (click)="inativarRaca(r)" title="Inativar"><i class="bi bi-archive"></i></button>
+                }</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>

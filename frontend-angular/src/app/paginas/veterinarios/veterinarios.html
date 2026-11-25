@@ -1,0 +1,63 @@
+<app-cabecalho titulo="Veterinários" subtitulo="Só entra quem está ativo e com a senha confirmada. A senha é guardada como hash (bcrypt)." imagem="img/estetoscopio.webp">
+  <button class="btn btn-primario" (click)="abrir(null)"><i class="bi bi-person-plus"></i> Novo veterinário</button>
+</app-cabecalho>
+
+<section class="cartao">
+  <div class="filtros">
+    <div class="pilulas">
+      <button type="button" class="pilula" [class.ativa]="status === ''" (click)="status = ''; carregar()">Todos</button>
+      <button type="button" class="pilula" [class.ativa]="status === 'ativo'" (click)="status = 'ativo'; carregar()">Ativos</button>
+      <button type="button" class="pilula" [class.ativa]="status === 'inativo'" (click)="status = 'inativo'; carregar()">Inativos</button>
+    </div>
+  </div>
+  <div class="grade-vets">
+    @for (v of lista; track v.id) {
+      <article class="cartao-vet" [class.inativo]="v.status !== 'ativo'">
+        <div class="d-flex align-items-center gap-3">
+          <span class="avatar avatar-grande">{{ iniciais(v.nome) }}</span>
+          <div class="flex-grow-1 min-w-0">
+            <h3 class="text-truncate">{{ v.nome }}</h3>
+            <span class="texto-suave">CRMV {{ v.ufCrmv }}-{{ v.crmv }}</span>
+          </div>
+          <app-etiqueta [situacao]="v.status" />
+        </div>
+        <ul class="vet-info">
+          <li><i class="bi bi-envelope"></i> {{ v.email }}</li>
+          <li><i class="bi bi-telephone"></i> {{ v.telefone || '-' }}</li>
+          <li><i class="bi bi-key"></i> Senha:
+            @if (v.senhaConfirmada) { <span class="etiqueta etiqueta-verde">confirmada</span> }
+            @else { <a routerLink="/confirmar-senha" [queryParams]="{ email: v.email }" class="etiqueta etiqueta-amarelo">confirmar</a> }
+          </li>
+          <li><i class="bi bi-clock-history"></i> Último acesso: {{ formatarDataHora(v.ultimoAcesso) || 'nunca' }}</li>
+        </ul>
+        @if (v.status === 'ativo') {
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-claro flex-grow-1" (click)="abrir(v)"><i class="bi bi-pencil"></i> Editar</button>
+            @if (v.id !== idLogado) { <button class="btn btn-sm btn-claro texto-perigo" (click)="inativar(v)"><i class="bi bi-person-dash"></i> Inativar</button> }
+          </div>
+        }
+      </article>
+    }
+  </div>
+</section>
+
+@if (formAberto) {
+  <div class="gaveta-fundo" (click)="formAberto = false"></div>
+  <aside class="gaveta" role="dialog">
+    <form (ngSubmit)="salvar()" novalidate>
+      <div class="gaveta-topo"><h2>{{ idEmEdicao ? 'Editar veterinário' : 'Novo veterinário' }}</h2><button type="button" class="btn-icone" (click)="formAberto = false" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div>
+      <div class="gaveta-corpo">
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label" for="nomeVet">Nome *</label><input id="nomeVet" name="nome" class="form-control" maxlength="150" [(ngModel)]="form.nome"></div>
+          <div class="col-sm-6"><label class="form-label" for="cpfVet">CPF *</label><input id="cpfVet" name="cpf" class="form-control" inputmode="numeric" maxlength="14" [(ngModel)]="form.cpf"></div>
+          <div class="col-6 col-sm-3"><label class="form-label" for="crmv">CRMV *</label><input id="crmv" name="crmv" class="form-control" inputmode="numeric" maxlength="10" [(ngModel)]="form.crmv"></div>
+          <div class="col-6 col-sm-3"><label class="form-label" for="ufCrmv">UF *</label><select id="ufCrmv" name="ufCrmv" class="form-select" [(ngModel)]="form.ufCrmv"><option value="">--</option>@for (uf of ufs; track uf) {<option [value]="uf">{{ uf }}</option>}</select></div>
+          <div class="col-sm-7"><label class="form-label" for="emailVet">E-mail *</label><input id="emailVet" name="email" type="email" class="form-control" maxlength="150" [(ngModel)]="form.email"></div>
+          <div class="col-sm-5"><label class="form-label" for="telefoneVet">Telefone</label><input id="telefoneVet" name="telefone" class="form-control" maxlength="20" [(ngModel)]="form.telefone"></div>
+          <div class="col-12"><label class="form-label" for="senhaVet">Senha {{ idEmEdicao ? '(deixe vazio para não trocar)' : '*' }}</label><input id="senhaVet" name="senha" type="password" class="form-control" autocomplete="new-password" [(ngModel)]="form.senha"></div>
+        </div>
+      </div>
+      <div class="gaveta-rodape"><button type="button" class="btn btn-light" (click)="formAberto = false">Cancelar</button><button type="submit" class="btn btn-primario" [disabled]="salvando">Salvar</button></div>
+    </form>
+  </aside>
+}

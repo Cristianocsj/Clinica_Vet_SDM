@@ -1,0 +1,78 @@
+<section class="banner-boas-vindas">
+  <div class="patinhas-fundo"></div>
+  <div class="banner-texto">
+    <span class="banner-chip"><i class="bi bi-stars"></i> Painel da clínica</span>
+    <h1>{{ saudacao }}, {{ nome }}!</h1>
+    <p>Veja quem precisa de vacina, acompanhe os envios ao governo e comece um atendimento.</p>
+    <div class="d-flex flex-wrap gap-2">
+      <a routerLink="/animais" [queryParams]="{ novo: 1 }" class="btn btn-claro"><i class="bi bi-plus-lg"></i> Novo animal</a>
+      <a routerLink="/tutores" [queryParams]="{ novo: 1 }" class="btn btn-contorno-claro"><i class="bi bi-person-plus"></i> Novo tutor</a>
+    </div>
+  </div>
+  <div class="banner-imagens">
+    <img src="img/cachorro-andando.webp" alt="Cachorro" class="banner-cao">
+    <img src="img/estetoscopio.webp" alt="" class="banner-flutua banner-flutua-1">
+    <img src="img/osso.webp" alt="" class="banner-flutua banner-flutua-2">
+  </div>
+</section>
+
+<section class="grade-numeros">
+  <a routerLink="/tutores" class="cartao-numero">
+    <img src="img/veterinaria.webp" alt="">
+    <div><strong>{{ carregando ? '…' : qtdTutores }}</strong><span>Tutores ativos</span></div>
+  </a>
+  <a routerLink="/animais" class="cartao-numero">
+    <img src="img/cachorro.webp" alt="">
+    <div><strong>{{ carregando ? '…' : qtdAnimais }}</strong><span>Animais ativos</span></div>
+  </a>
+  <a routerLink="/doses" class="cartao-numero" [class.cartao-numero-alerta]="qtdAtrasadas > 0">
+    <img src="img/vacina.webp" alt="">
+    <div><strong>{{ carregando ? '…' : qtdAtrasadas }}</strong><span>Doses atrasadas</span></div>
+  </a>
+  <a routerLink="/governo" class="cartao-numero" [class.cartao-numero-alerta]="qtdPendencias > 0">
+    <img src="img/governo.webp" alt="">
+    <div><strong>{{ carregando ? '…' : qtdPendencias }}</strong><span>Envios pendentes ou com falha</span></div>
+  </a>
+</section>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <section class="cartao">
+      <div class="cartao-titulo">
+        <h2><i class="bi bi-calendar2-heart"></i> Próximas doses (30 dias)</h2>
+        <a routerLink="/doses" class="link-seta">Ver todas <i class="bi bi-arrow-right"></i></a>
+      </div>
+      @if (carregando) {
+        <div class="vazio"><span class="spinner-border spinner-border-sm"></span> Carregando...</div>
+      } @else if (!doses.length) {
+        <div class="vazio"><img src="img/osso.webp" alt="" width="56"> Nenhuma dose prevista nos próximos 30 dias.</div>
+      } @else {
+        <ul class="lista-doses">
+          @for (d of doses.slice(0, 6); track $index) {
+            <li>
+              <div class="dose-data"><strong>{{ formatarData(d.dataPrevista).slice(0, 5) }}</strong><span>{{ formatarData(d.dataPrevista).slice(6) }}</span></div>
+              <div class="flex-grow-1">
+                <a [routerLink]="['/animais', d.animalId]" class="fw-bold">{{ d.animalNome }}</a>
+                <div class="texto-suave">{{ d.vacina }} @if (d.antirrabica) { <span class="etiqueta etiqueta-escura">antirrábica</span> } · {{ d.tutorNome }}</div>
+              </div>
+              <app-etiqueta [situacao]="d.status" />
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+  <div class="col-xl-4">
+    <section class="cartao cartao-roteiro">
+      <h2 class="mb-3"><i class="bi bi-signpost-2"></i> Roteiro de atendimento</h2>
+      <ol class="roteiro">
+        <li><a routerLink="/tutores">Cadastre o <strong>tutor</strong> (o CEP preenche o endereço)</a></li>
+        <li><a routerLink="/animais">Cadastre o <strong>animal</strong> com o tutor</a></li>
+        <li>Na ficha, vincule o <strong>microchip</strong></li>
+        <li>Registre <strong>consultas</strong> e <strong>vacinas</strong></li>
+        <li><a routerLink="/governo">Acompanhe os <strong>envios ao governo</strong></a></li>
+      </ol>
+      <img src="img/cao-servico.webp" alt="" class="roteiro-imagem">
+    </section>
+  </div>
+</div>
