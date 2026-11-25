@@ -1,0 +1,27 @@
+# Teste online no Render (plano grátis). Cria as duas APIs a partir deste repositório.
+# No Render: New > Blueprint > escolha o repositório e a branch. Veja docs/DEPLOY_ONLINE.md.
+services:
+  - type: web
+    name: clinica-vet-sdm-gov
+    runtime: python
+    plan: free
+    rootDir: api_gov
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/governo/saude
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1
+
+  - type: web
+    name: clinica-vet-sdm-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    # O disco do plano grátis é apagado a cada reinício: o banco volta aos dados de exemplo.
+    startCommand: npm run banco:recriar:demo && npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: GOV_API_URL
+        value: https://clinica-vet-sdm-gov.onrender.com/api/governo

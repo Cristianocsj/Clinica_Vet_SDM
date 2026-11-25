@@ -57,6 +57,15 @@
                   <span class="texto-suave ms-auto"><i class="bi bi-person-badge"></i> {{ c.veterinarioNome }}</span>
                 </div>
                 <h3>{{ c.motivo }}</h3>
+                @if (c.status === 'agendada') {
+                  <div class="acoes-consulta">
+                    <span class="texto-suave">Encerrar agendamento:</span>
+                    <button class="btn btn-sm btn-light" [disabled]="alterando === c.id" (click)="encerrarConsulta(c, 'realizada')"><i class="bi bi-check2-circle"></i> Realizada</button>
+                    <button class="btn btn-sm btn-light" [disabled]="alterando === c.id" (click)="encerrarConsulta(c, 'nao_compareceu')"><i class="bi bi-person-x"></i> Não compareceu</button>
+                    <button class="btn btn-sm btn-light texto-perigo" [disabled]="alterando === c.id" (click)="encerrarConsulta(c, 'cancelada')"><i class="bi bi-x-circle"></i> Cancelar</button>
+                  </div>
+                }
+                @if (c.observacoes) { <p class="texto-suave mb-0 mt-1"><i class="bi bi-chat-left-text"></i> {{ c.observacoes }}</p> }
                 <div class="linha-tempo-detalhes">
                   @if (c.diagnostico) { <div><span>Diagnóstico</span>{{ c.diagnostico }}</div> }
                   @if (c.tratamento) { <div><span>Tratamento</span>{{ c.tratamento }}</div> }
@@ -75,7 +84,7 @@
         } @else {
           <div class="tabela-responsiva">
             <table class="tabela">
-              <thead><tr><th>Aplicação</th><th>Vacina</th><th>Dose</th><th>Lote</th><th>Próxima dose</th><th>Situação</th><th>Governo</th></tr></thead>
+              <thead><tr><th>Aplicação</th><th>Vacina</th><th>Dose</th><th>Lote</th><th>Próxima dose</th><th>Situação</th><th>Governo</th><th></th></tr></thead>
               <tbody>
                 @for (v of vacinas; track v.id) {
                   <tr>
@@ -86,6 +95,7 @@
                     <td data-titulo="Próxima dose">{{ formatarData(v.proximaDose) || '-' }}</td>
                     <td data-titulo="Situação"><app-etiqueta [situacao]="v.situacao" /></td>
                     <td data-titulo="Governo">@if (v.integracaoGov) { <app-etiqueta [situacao]="v.integracaoGov.situacao" /> } @else { <span class="texto-suave">não precisa</span> }</td>
+                    <td data-titulo="Ações" class="text-nowrap">@if (v.situacao !== 'cancelada') { <button class="btn btn-sm btn-light" (click)="abrirEdicaoVacina(v)"><i class="bi bi-pencil"></i> Editar</button> } @else { <span class="texto-suave" [title]="v.observacoes || ''">cancelada</span> }</td>
                   </tr>
                 }
               </tbody>
@@ -193,6 +203,32 @@
             </div>
           </div>
           <div class="gaveta-rodape"><button type="button" class="btn btn-light" (click)="formAberto = ''">Cancelar</button><button type="submit" class="btn btn-primario" [disabled]="salvando">@if (salvando) {<span class="spinner-border spinner-border-sm"></span>} Salvar consulta</button></div>
+        </form>
+      }
+      @case ('editarVacina') {
+        <form (ngSubmit)="salvarEdicaoVacina()" novalidate>
+          <div class="gaveta-topo"><h2>Editar vacina</h2><button type="button" class="btn-icone" (click)="formAberto = ''" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div>
+          <div class="gaveta-corpo">
+            <div class="faixa-info"><i class="bi bi-info-circle"></i><div><strong>{{ edicao.nome }}</strong> de {{ formatarData(edicao.dataAplicacao) }}. Nome, fabricante, lote e dose não mudam depois do registro (na antirrábica, são os dados enviados ao governo).</div></div>
+            <div class="row g-3">
+              <div class="col-sm-6"><label class="form-label" for="viaEdicao">Via</label><input id="viaEdicao" name="via" class="form-control" maxlength="30" [(ngModel)]="edicao.via"></div>
+              @if (edicao.situacao === 'aplicada') {
+                <div class="col-sm-6"><label class="form-label" for="proximaEdicao">Próxima dose</label><input id="proximaEdicao" name="proximaDose" type="date" class="form-control" [(ngModel)]="edicao.proximaDose"></div>
+              }
+              <div class="col-12"><label class="form-label" for="obsEdicao">Observações</label><textarea id="obsEdicao" name="observacoes" class="form-control" rows="2" maxlength="1000" [(ngModel)]="edicao.observacoes"></textarea></div>
+            </div>
+            <hr class="my-4">
+            <h3 class="h6"><i class="bi bi-x-circle texto-perigo"></i> Cancelar esta vacina</h3>
+            @if (edicao.bloqueada) {
+              <p class="texto-suave mb-0">Esta antirrábica já foi comunicada ao governo e não pode ser cancelada.</p>
+            } @else {
+              <p class="texto-suave small">Use quando o registro foi feito por engano ou o agendamento não vai acontecer. @if (edicao.integracaoGov) { O envio ao governo, ainda pendente, é encerrado. }</p>
+              <label class="form-label" for="motivoCancelar">Motivo do cancelamento</label>
+              <input id="motivoCancelar" name="motivoCancelar" class="form-control" maxlength="300" [(ngModel)]="edicao.motivo">
+              <button type="button" class="btn btn-outline-danger btn-sm mt-2" [disabled]="salvando" (click)="cancelarVacina()"><i class="bi bi-x-circle"></i> Cancelar vacina</button>
+            }
+          </div>
+          <div class="gaveta-rodape"><button type="button" class="btn btn-light" (click)="formAberto = ''">Fechar</button><button type="submit" class="btn btn-primario" [disabled]="salvando">@if (salvando) {<span class="spinner-border spinner-border-sm"></span>} Salvar alterações</button></div>
         </form>
       }
       @case ('vacina') {

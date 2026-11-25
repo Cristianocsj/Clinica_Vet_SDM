@@ -260,12 +260,21 @@ function listar(query) {
 }
 
 // POST /api/integracoes/:id/enviar  (envio manual ou "Reenviar")
+const sqlVacinaCancelada = db.prepare(`
+    SELECT 1 FROM VET_INTEGRACAO_GOV ig
+      JOIN VET_VACINA va ON va.VACI_ID_VACINA = ig.VACI_ID_VACINA
+     WHERE ig.INGO_ID_INTEGRACAO = ? AND va.VACI_DS_SITUACAO = 'cancelada'
+`);
+
 async function enviar(idIntegracao) {
     const id = v.id(idIntegracao, 'id da integração');
     const d = sqlDadosEnvio.get(id);
     if (!d) throw new ErroApi(404, 'INTEGRACAO_NAO_ENCONTRADA', 'Comunicação com o governo não encontrada.');
     if (d.situacao === 'confirmada') {
         throw new ErroApi(409, 'INTEGRACAO_JA_CONFIRMADA', 'Esta comunicação já foi confirmada pelo governo.');
+    }
+    if (sqlVacinaCancelada.get(id)) {
+        throw new ErroApi(409, 'VACINA_CANCELADA', 'A vacina foi cancelada na clínica: esta comunicação não será enviada.');
     }
     const chamada = montarChamada(d);
     if (!chamada) {

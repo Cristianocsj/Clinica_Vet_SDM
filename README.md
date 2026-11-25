@@ -225,6 +225,9 @@ Não precisa instalar de novo: `npm start` (terminal 1), o comando do `uvicorn` 
 
 Para voltar o banco da clínica aos dados de exemplo, pare a API (Ctrl+C) e rode `npm run banco:recriar:demo`.
 
+> [!TIP]
+> Quer mostrar online? Veja [`docs/DEPLOY_ONLINE.md`](docs/DEPLOY_ONLINE.md): telas no **Firebase** e as duas APIs no **Render**, no plano grátis.
+
 ### 📜 Scripts
 
 | Comando | O que faz |

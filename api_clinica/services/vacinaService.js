@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { db, transacao } = require('../database/conexao');
 const v = require('../utils/validacao');
 const { exigirAnimal } = require('./animalRegistro');
+const { ErroApi } = require('../utils/erroApi');
 
 const SITUACOES_NO_CADASTRO = ['aplicada', 'agendada'];
 const DIAS_PADRAO_PROXIMAS = 30;
@@ -233,4 +234,85 @@ function buscar(id) {
     return formatar(sqlBuscar.get(id));
 }
 
-module.exports = { registrar, buscar, historico, proximasDoses };
+const sqlAlterar = db.prepare(`
+    UPDATE VET_VACINA
+       SET VACI_DS_VIA_APLICACAO = ?,
+           VACI_DT_PROX_DOSE     = ?,
+           VACI_DS_OBS           = ?
+     WHERE VACI_ID_VACINA = ?
+`);
+
+const sqlCancelar = db.prepare(`
+    UPDATE VET_VACINA
+       SET VACI_DS_SITUACAO = 'cancelada',
+           VACI_DT_PROX_DOSE = NULL,
+           VACI_DS_OBS = trim(coalesce(VACI_DS_OBS, '') || ' [Cancelada: ' || ? || ']')
+     WHERE VACI_ID_VACINA = ?
+`);
+
+// Antirrábica cancelada antes de chegar ao governo: o envio pendente é encerrado
+const sqlEncerrarEnvio = db.prepare(`
+    UPDATE VET_INTEGRACAO_GOV
+       SET INGO_DS_SITUACAO = 'com_falha',
+           INGO_DS_MSG_ERRO = 'Vacina cancelada na clínica antes do envio: não será comunicada ao governo.'
+     WHERE VACI_ID_VACINA = ?
+       AND INGO_DS_SITUACAO IN ('pendente', 'com_falha')
+`);
+
+function exigirVacina(idVacina) {
+    const id = v.id(idVacina, 'id da vacina');
+    const vacina = sqlBuscar.get(id);
+    if (!vacina) throw new ErroApi(404, 'VACINA_NAO_ENCONTRADA', 'Vacina não encontrada.');
+    return formatar(vacina);
+}
+
+// PUT /api/vacinas/:id   Corpo: { via?, proximaDose?, observacoes? }
+// Corrige os dados que não vão para o governo. Nome, fabricante, lote, datas e dose
+// ficam como foram registrados (na antirrábica, são os dados comunicados ao governo).
+function alterar(idVacina, corpo) {
+    corpo = corpo || {};
+    const vacina = exigirVacina(idVacina);
+    if (vacina.situacao === 'cancelada') {
+        throw new ErroApi(409, 'VACINA_CANCELADA', 'Vacina cancelada não pode ser alterada.');
+    }
+    const erros = [];
+    const d = {
+        via: 'via' in corpo ? v.texto(erros, corpo, 'via', { max: 30 }) : vacina.via,
+        proximaDose: 'proximaDose' in corpo ? v.data(erros, corpo, 'proximaDose') : vacina.proximaDose,
+        observacoes: 'observacoes' in corpo ? v.texto(erros, corpo, 'observacoes', { max: 1000 }) : vacina.observacoes,
+    };
+    if (d.proximaDose && vacina.situacao !== 'aplicada') {
+        erros.push('proximaDose: informe só quando a vacina for aplicada');
+    }
+    if (d.proximaDose && d.proximaDose <= vacina.dataAplicacao) {
+        erros.push('proximaDose: precisa ser depois da data da aplicação');
+    }
+    v.lancarSeHouverErros(erros);
+    sqlAlterar.run(d.via, d.proximaDose, d.observacoes, vacina.id);
+    return exigirVacina(vacina.id);
+}
+
+// PUT /api/vacinas/:id/cancelar   Corpo: { motivo }
+// Antirrábica que o governo já recebeu não pode ser cancelada na clínica.
+function cancelar(idVacina, corpo) {
+    corpo = corpo || {};
+    const vacina = exigirVacina(idVacina);
+    const erros = [];
+    const motivo = v.texto(erros, corpo, 'motivo', { obrigatorio: true, max: 300 });
+    v.lancarSeHouverErros(erros);
+    if (vacina.situacao === 'cancelada') {
+        throw new ErroApi(409, 'VACINA_JA_CANCELADA', 'Esta vacina já está cancelada.');
+    }
+    const envio = vacina.integracaoGov;
+    if (envio && (envio.situacao === 'enviada' || envio.situacao === 'confirmada')) {
+        throw new ErroApi(409, 'VACINA_JA_COMUNICADA',
+            'Esta antirrábica já foi comunicada ao governo e não pode ser cancelada.');
+    }
+    transacao(() => {
+        sqlCancelar.run(motivo, vacina.id);
+        sqlEncerrarEnvio.run(vacina.id);
+    });
+    return exigirVacina(vacina.id);
+}
+
+module.exports = { registrar, buscar, historico, proximasDoses, alterar, cancelar };

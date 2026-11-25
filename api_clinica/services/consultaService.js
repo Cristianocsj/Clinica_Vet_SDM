@@ -2,6 +2,7 @@
 const { db, transacao } = require('../database/conexao');
 const v = require('../utils/validacao');
 const { exigirAnimal } = require('./animalRegistro');
+const { ErroApi } = require('../utils/erroApi');
 
 const STATUS = ['realizada', 'agendada', 'cancelada', 'nao_compareceu'];
 
@@ -122,4 +123,37 @@ function historico(idAnimal) {
     };
 }
 
-module.exports = { registrar, historico };
+const sqlAlterarSituacao = db.prepare(`
+    UPDATE VET_CONSULTA
+       SET CONS_DS_STATUS = ?,
+           CONS_DS_OBS    = coalesce(?, CONS_DS_OBS)
+     WHERE CONS_ID_CONSULTA = ?
+`);
+
+// PUT /api/consultas/:id/situacao   Corpo: { status, observacoes? }
+// Só a consulta AGENDADA muda de situação: vira realizada, cancelada ou não compareceu.
+// Realizada, cancelada e não compareceu já são situações finais.
+function alterarSituacao(idConsulta, corpo) {
+    corpo = corpo || {};
+    const id = v.id(idConsulta, 'id da consulta');
+    const erros = [];
+    const status = v.opcao(erros, corpo, 'status', ['realizada', 'cancelada', 'nao_compareceu'], null);
+    if (!status && !erros.length) erros.push('status: obrigatório (realizada, cancelada ou nao_compareceu)');
+    const observacoes = v.texto(erros, corpo, 'observacoes', { max: 1000 });
+    v.lancarSeHouverErros(erros);
+
+    const consulta = sqlBuscar.get(id);
+    if (!consulta) throw new ErroApi(404, 'CONSULTA_NAO_ENCONTRADA', 'Consulta não encontrada.');
+    if (consulta.status !== 'agendada') {
+        throw new ErroApi(409, 'CONSULTA_JA_ENCERRADA',
+            `Só consulta agendada muda de situação. Esta já está "${consulta.status}".`);
+    }
+    if (status !== 'cancelada' && consulta.dataHora > v.agoraLocal()) {
+        throw new ErroApi(409, 'CONSULTA_NO_FUTURO',
+            'A consulta ainda não chegou na data marcada: só dá para cancelar.');
+    }
+    sqlAlterarSituacao.run(status, observacoes, id);
+    return sqlBuscar.get(id);
+}
+
+module.exports = { registrar, historico, alterarSituacao };

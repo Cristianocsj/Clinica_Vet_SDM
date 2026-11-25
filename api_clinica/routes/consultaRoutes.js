@@ -25,4 +25,14 @@ router.get('/animais/:id/consultas', (req, res) => {
     }
 });
 
+// PUT /api/consultas/:id/situacao   Corpo: { status: "realizada" | "cancelada" | "nao_compareceu", observacoes? }
+// Encerra uma consulta agendada.
+router.put('/consultas/:id/situacao', (req, res) => {
+    try {
+        return res.status(200).json(consultaService.alterarSituacao(req.params.id, req.body));
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+});
+
 module.exports = router;
