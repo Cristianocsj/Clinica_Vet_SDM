@@ -1,0 +1,329 @@
+{
+  "info": {
+    "_postman_id": "a3cc4533-f451-4244-81bc-e867c30c8c14",
+    "name": "Clinica Vet - API Governo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "47170512",
+    "_collection_link": "https://go.postman.co/collection/47170512-a3cc4533-f451-4244-81bc-e867c30c8c14?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "00 - Preparar dados",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const sufixo = Date.now().toString().slice(-12);\r\npm.collectionVariables.set(\"microchip\", \"985\" + sufixo);\r\npm.collectionVariables.set(\"microchip_vac\", \"986\" + sufixo);\r\npm.collectionVariables.set(\"chave\", pm.variables.replaceIn(\"{{$guid}}\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/saude",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "saude"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "01 - Cadastrar animal",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"chave_idempotencia\": \"cadastro-rex-001\",\r\n  \"microchip\": \"900215000123456\",\r\n  \"nome\": \"Rex\",\r\n  \"especie\": \"Cão\",\r\n  \"raca\": \"Labrador\",\r\n  \"sexo\": \"M\",\r\n  \"data_nascimento\": \"2022-03-15\",\r\n  \"tutor_nome\": \"Maria Silva\",\r\n  \"tutor_cpf\": \"12345678909\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/animais",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "animais"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Microchip repetido",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Microchip inválido",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 - Consultar animal",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Consultar inesistente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 - Atualizar animal",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 - Atualizar inesistente",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 - Atualizar com o cpf inválido",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 - Vacinação com animal novo",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10 - Vacinação repetida",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11 - Vacinação com outra chave",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12 - Vacinação sem chave",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13 - Consultar operação",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14 -  Operação inesistente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15 - Ver simulação",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "16 -  Ligar indisponível",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "17 - Vacinação com o gov fora do ar",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "18 - Consulta com o gov fora do ar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "19 - Ligar erro de validação",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "20 - Cadastro com erro simulado",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "21 - Consulta com erro ligado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "22 - Desligar simulação",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "23 - Vacinação após desligar",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": ""
+    },
+    {
+      "key": "microchip",
+      "value": ""
+    },
+    {
+      "key": "microchip_vac",
+      "value": ""
+    },
+    {
+      "key": "chave",
+      "value": ""
+    },
+    {
+      "key": "protocolo",
+      "value": ""
+    }
+  ]
+}
