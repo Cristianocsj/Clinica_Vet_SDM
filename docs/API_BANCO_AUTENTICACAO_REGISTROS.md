@@ -117,6 +117,7 @@ O e-mail é simulado: o código aparece no terminal onde a API está rodando.
 |---|---|
 | POST /api/consultas | 201 |
 | GET /api/animais/:id/consultas | 200 com o histórico, da mais nova para a mais antiga |
+| PUT /api/consultas/:id/situacao | 200 com a consulta. Corpo: `{ "status": "realizada" \| "cancelada" \| "nao_compareceu", "observacoes"? }` |
 
 Exemplo:
 
@@ -139,6 +140,7 @@ Exemplo:
 - status pode ser realizada (padrão), agendada, cancelada ou nao_compareceu.
 - Temperatura entre 30 e 45. O peso da consulta atualiza o peso do animal.
 - Animal inativo não recebe consulta nova, mas o histórico dele continua aparecendo.
+- Só consulta **agendada** muda de situação (409 `CONSULTA_JA_ENCERRADA` nas outras). Antes da data marcada, só dá para cancelar (409 `CONSULTA_NO_FUTURO`). Na tela: botões "Realizada", "Não compareceu" e "Cancelar" na ficha do animal.
 
 ### Microchips
 
@@ -159,6 +161,8 @@ Exemplo:
 | POST /api/vacinas | 201 |
 | GET /api/animais/:id/vacinas | 200 com o histórico de vacinas |
 | GET /api/vacinas/proximas-doses | 200 com as próximas doses (?dias=30 e ?animalId= são opcionais) |
+| PUT /api/vacinas/:id | 200. Corrige `via`, `proximaDose` e `observacoes` |
+| PUT /api/vacinas/:id/cancelar | 200. Corpo: `{ "motivo": "..." }` (obrigatório) |
 
 Vacina aplicada:
 
@@ -186,6 +190,8 @@ Vacina agendada:
 - Não aceita lote vencido nem aplicação com data no futuro.
 - A próxima dose tem que ser depois da aplicação.
 - Antirrábica: manda "antirrabica": true ou coloca no nome/tipo (Antirrábica, raiva).
+- Editar não muda nome, fabricante, lote, datas nem dose (na antirrábica, são os dados enviados ao governo). Vacina cancelada não pode ser editada (409 `VACINA_CANCELADA`).
+- Cancelar guarda o motivo nas observações e tira a vacina das próximas doses. Antirrábica já enviada ou confirmada pelo governo não pode ser cancelada (409 `VACINA_JA_COMUNICADA`); se o envio ainda estava pendente, ele é encerrado e não é mais reenviado.
 - Próximas doses mostra as doses que vão vencer e as vacinas agendadas. Quando aplica a dose seguinte, a anterior sai da lista. As que já passaram aparecem como atrasada.
 
 ## Integração com o governo

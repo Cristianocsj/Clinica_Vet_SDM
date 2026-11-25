@@ -45,7 +45,9 @@ export class FichaAnimal implements OnInit {
   enviando: number | null = null;
 
   // formulários (um painel lateral por vez)
-  formAberto: '' | 'consulta' | 'vacina' | 'microchip' = '';
+  formAberto: '' | 'consulta' | 'vacina' | 'microchip' | 'editarVacina' = '';
+  alterando: number | null = null;
+  edicao: any = {};
   salvando = false;
   consulta = consultaVazia();
   vacina = vacinaVazia();
@@ -173,6 +175,69 @@ export class FichaAnimal implements OnInit {
       this.formAberto = '';
       this.aba = 'vacinas';
       this.carregar();
+    } catch (e: any) {
+      this.aviso.erro(e.message);
+    } finally {
+      this.salvando = false;
+    }
+  }
+
+  // ---------------- Encerrar consulta agendada: PUT /api/consultas/:id/situacao ----------------
+  async encerrarConsulta(c: any, status: 'realizada' | 'nao_compareceu' | 'cancelada') {
+    const textos = { realizada: 'marcar como realizada', nao_compareceu: 'marcar que o tutor não compareceu', cancelada: 'cancelar' };
+    const ok = await this.aviso.confirmar('Encerrar agendamento', `Deseja ${textos[status]} a consulta "${c.motivo}" de ${formatarDataHora(c.dataHora)}?`, 'Sim');
+    if (!ok) return;
+    this.alterando = c.id;
+    try {
+      await this.api.put(`/consultas/${c.id}/situacao`, { status });
+      this.aviso.sucesso('Situação da consulta atualizada.');
+      await this.carregar();
+    } catch (e: any) {
+      this.aviso.erro(e.message);
+    } finally {
+      this.alterando = null;
+    }
+  }
+
+  // ---------------- Editar / cancelar vacina: PUT /api/vacinas/:id e /cancelar ----------------
+  abrirEdicaoVacina(v: any) {
+    const envio = v.integracaoGov;
+    this.edicao = {
+      ...v, via: v.via || '', proximaDose: v.proximaDose || '', observacoes: v.observacoes || '', motivo: '',
+      bloqueada: !!envio && (envio.situacao === 'enviada' || envio.situacao === 'confirmada'),
+    };
+    this.formAberto = 'editarVacina';
+  }
+
+  async salvarEdicaoVacina() {
+    const d = this.edicao;
+    if (d.proximaDose && d.proximaDose <= d.dataAplicacao) return this.aviso.alerta('Confira: próxima dose depois da aplicação.');
+    const corpo: any = { via: vazioParaNull(d.via), observacoes: vazioParaNull(d.observacoes) };
+    if (d.situacao === 'aplicada') corpo.proximaDose = vazioParaNull(d.proximaDose);
+    this.salvando = true;
+    try {
+      await this.api.put(`/vacinas/${d.id}`, corpo);
+      this.aviso.sucesso('Vacina atualizada.');
+      this.formAberto = '';
+      await this.carregar();
+    } catch (e: any) {
+      this.aviso.erro(e.message);
+    } finally {
+      this.salvando = false;
+    }
+  }
+
+  async cancelarVacina() {
+    const d = this.edicao;
+    if (!d.motivo?.trim()) return this.aviso.alerta('Informe o motivo do cancelamento.');
+    const ok = await this.aviso.confirmar('Cancelar vacina', `Cancelar "${d.nome}" de ${formatarData(d.dataAplicacao)}? Ela sai das próximas doses.`, 'Cancelar vacina');
+    if (!ok) return;
+    this.salvando = true;
+    try {
+      await this.api.put(`/vacinas/${d.id}/cancelar`, { motivo: d.motivo.trim() });
+      this.aviso.sucesso('Vacina cancelada.');
+      this.formAberto = '';
+      await this.carregar();
     } catch (e: any) {
       this.aviso.erro(e.message);
     } finally {

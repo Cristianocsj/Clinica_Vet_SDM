@@ -40,4 +40,22 @@ router.get('/animais/:id/vacinas', (req, res) => {
     }
 });
 
+// PUT /api/vacinas/:id   Corpo: { via?, proximaDose?, observacoes? }
+router.put('/vacinas/:id', (req, res) => {
+    try {
+        return res.status(200).json(vacinaService.alterar(req.params.id, req.body));
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+});
+
+// PUT /api/vacinas/:id/cancelar   Corpo: { motivo }
+router.put('/vacinas/:id/cancelar', (req, res) => {
+    try {
+        return res.status(200).json(vacinaService.cancelar(req.params.id, req.body));
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+});
+
 module.exports = router;
