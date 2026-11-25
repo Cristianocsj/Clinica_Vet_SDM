@@ -12,7 +12,7 @@ Os prints abaixo foram tirados **nesta execução**, pelas telas novas, em `docs
 |---|---|---|
 | `Clinica_Vet_Bia` | 35 requisições, 71 verificações, 0 falhas | `Newman 1 - Clinica_Vet_Bia.png` |
 | `Clinica_Vet_Bia_Testes` | 10 requisições, 23 verificações, 0 falhas | `Newman 2 - Clinica_Vet_Bia_Testes.png` |
-| `Clinica_Vet_Tutores_Animais_Microchip_Governo` | 44 requisições, 84 verificações, 3 falhas: só as do CEP, porque o ambiente da revisão não tinha acesso ao ViaCEP. Na máquina com internet elas passam. | `Newman 3 - ...png` |
+| `Clinica_Vet_Tutores_Animais_Microchip_Governo` | 44 requisições, 84 verificações, 3 falhas: só as do CEP, porque o ambiente da revisão não tinha acesso ao ViaCEP (o CEP pela tela foi testado na máquina com internet, ver teste 6). | `Newman 3 - ...png` |
 
 ### Os 16 testes obrigatórios, pelas telas
 
@@ -23,7 +23,7 @@ Os prints abaixo foram tirados **nesta execução**, pelas telas novas, em `docs
 | 3 | Bloqueio de senha não confirmada | Passou | Teste 3 |
 | 4 | Rejeição de senha incorreta (e-mail certo, senha errada) | Passou | Teste 4 |
 | 5 | Cadastro de tutor e CPF duplicado | Passou | Teste 5, 5.1 |
-| 6 | CEP válido e CEP inexistente | **Só o caso "ViaCEP indisponível"** foi testado aqui (sem internet para o ViaCEP): a tela avisa e deixa preencher à mão. **Falta tirar na máquina com internet:** `01001-000` (preenche) e `99999-999` (não encontrado). | Teste 6, 6.1 |
+| 6 | CEP válido e CEP inexistente | Passou, na máquina com internet: `22733-040` preenche o endereço (HTTP 200, com código IBGE) e `99999-999` mostra "CEP não encontrado" (HTTP 400), deixando preencher à mão. No ambiente sem internet, a tela avisa que o ViaCEP está indisponível. | `docs/prints/joao/` Teste 6, 6.1, 6.2; `caio/` Teste 6, 6.1 (indisponível) |
 | 7 | Cadastro de animal com tutor e vínculo de microchip | Passou | Teste 7, 7.1, 7.2 |
 | 8 | Rejeição de microchip já utilizado | Passou (e chip com 14 números recusado) | Teste 8, 8.1 |
 | 9 | Registro de consulta e histórico | Passou | Teste 9, 9.1 |
