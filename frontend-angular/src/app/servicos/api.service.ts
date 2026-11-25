@@ -3,7 +3,9 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
-export const API_URL = 'http://localhost:3000/api';
+import { environment } from '../../environments/environment';
+
+export const API_URL = environment.apiUrl;
 
 export interface Sessao {
   token: string;
@@ -68,7 +70,9 @@ export class ApiService {
         body: corpo === undefined ? undefined : JSON.stringify(corpo),
       });
     } catch {
-      throw new ErroApi('Não foi possível falar com a API da clínica (http://localhost:3000). Confira se ela está rodando com "npm start".');
+      throw new ErroApi(environment.online
+        ? 'Não foi possível falar com a API da clínica online. No plano grátis ela "dorme" quando fica parada: espere cerca de 1 minuto e tente de novo.'
+        : 'Não foi possível falar com a API da clínica (http://localhost:3000). Confira se ela está rodando com "npm start".');
     }
 
     const texto = await resposta.text();
