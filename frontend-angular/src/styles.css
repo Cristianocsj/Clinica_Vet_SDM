@@ -245,7 +245,7 @@ a { text-decoration: none; }
 .perfil-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .6rem; margin-bottom: .9rem; }
 .perfil-grade > div { background: rgba(255,255,255,.14); border-radius: 14px; padding: .55rem .8rem; }
 .perfil-grade span { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; opacity: .8; font-weight: 700; }
-.perfil-grade strong { font-size: 1rem; word-break: break-all; }
+.perfil-grade strong { font-size: 1rem; overflow-wrap: anywhere; }
 .perfil-grade .texto-perigo { color: #ffd1d1 !important; }
 .perfil-tutor { margin: 0; font-size: .92rem; }
 .perfil-tutor a { color: #ffe0c7; font-weight: 700; margin-left: .3rem; }

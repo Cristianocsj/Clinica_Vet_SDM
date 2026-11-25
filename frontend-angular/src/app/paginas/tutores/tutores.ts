@@ -105,7 +105,7 @@ export class Tutores implements OnInit {
     } catch (e: any) {
       // CEP inexistente, timeout ou ViaCEP fora do ar: a pessoa preenche à mão
       this.form.codigoIbge = '';
-      this.avisoCep = `${e.message} Você pode preencher o endereço à mão.`;
+      this.avisoCep = /manual|à mão/i.test(e.message) ? e.message : `${e.message} Você pode preencher o endereço à mão.`;
       this.avisoCepTipo = 'erro';
     } finally {
       this.buscandoCep = false;

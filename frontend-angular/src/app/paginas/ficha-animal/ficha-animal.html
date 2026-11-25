@@ -80,7 +80,7 @@
                 @for (v of vacinas; track v.id) {
                   <tr>
                     <td data-titulo="Aplicação" class="text-nowrap">{{ formatarData(v.dataAplicacao) }}</td>
-                    <td data-titulo="Vacina"><strong>{{ v.nome }}</strong> <span class="texto-suave">({{ v.tipo }})</span> @if (v.antirrabica) { <span class="etiqueta etiqueta-escura">antirrábica</span> }</td>
+                    <td data-titulo="Vacina"><strong>{{ v.nome }}</strong>&nbsp;<span class="texto-suave">({{ v.tipo }})</span>&nbsp; @if (v.antirrabica) { <span class="etiqueta etiqueta-escura">antirrábica</span> }</td>
                     <td data-titulo="Dose">{{ v.dose || '-' }}</td>
                     <td data-titulo="Lote" class="fonte-mono">{{ v.lote || '-' }}</td>
                     <td data-titulo="Próxima dose">{{ formatarData(v.proximaDose) || '-' }}</td>

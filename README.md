@@ -4,7 +4,7 @@ Sistema web para gestão de clínica veterinária com integração de APIs (A3 d
 Tudo roda na sua máquina (`localhost`). Só a consulta de CEP usa a internet (ViaCEP real).
 
 ```text
-Telas (frontend)  ── REST ──>  API da clínica (Node)  ── HTTP ──>  API do governo (Python, simulada)
+Telas (Angular)   ── REST ──>  API da clínica (Node)  ── HTTP ──>  API do governo (Python, simulada)
 localhost:8080                 localhost:3000                      localhost:8001
                                  │        └── HTTP ──> ViaCEP (internet)
                                  └── clinica.db (SQLite)            └── governo.db (SQLite, separado)
@@ -14,7 +14,7 @@ localhost:8080                 localhost:3000                      localhost:800
 
 | Parte | Tecnologia | Por quê |
 |---|---|---|
-| Telas | HTML + CSS + JavaScript + Bootstrap 5.3 | Sem framework e sem compilação. O Bootstrap deixa as telas responsivas (celular) e está copiado no projeto (funciona sem CDN). |
+| Telas | Angular 21 + Bootstrap 5.3 (pasta `frontend-angular/`) | Uma tela = um componente (`.ts` + `.html`), rotas com proteção por login e tema próprio de clínica veterinária. Funciona no celular. O front antigo em HTML puro continua em `frontend/` (`npm run front:antigo`). |
 | API da clínica | Node.js 22+ com Express 5 | Mesma linguagem das telas, simples e muito usada. |
 | Banco da clínica | SQLite que já vem no Node (`node:sqlite`) | Banco relacional sem instalar servidor nem compilar biblioteca. |
 | Senha e sessão | bcryptjs + token de sessão (8 h) | A senha nunca é guardada pura. |
@@ -74,6 +74,7 @@ Pronto quando aparecer `Uvicorn running on http://127.0.0.1:8001`. Swagger: http
 ### 5. Terminal 3: telas (porta 8080)
 
 ```bash
+npm run front:instalar   # só na primeira vez
 npm run front
 ```
 
@@ -102,7 +103,7 @@ O `banco:recriar:demo` também cria 3 tutores e 5 animais (Rex, Mel, Luna, Piu e
   - `Clinica_Vet_Bia.postman_collection.json`: login, veterinários, consultas e vacinas (testes 1 a 4, 9 e 10).
   - `Clinica_Vet_Tutores_Animais_Microchip_Governo.postman_collection.json`: tutores, CEP, espécies, raças, animais, microchip e envio ao governo (testes 5 a 8 e 12 a 16). Precisa das duas APIs rodando.
 - **Governo:** pelo Swagger em http://localhost:8001/docs.
-- **Pelas telas:** o roteiro de cada um dos 16 testes obrigatórios está em `docs/RELATORIO_DE_TESTES.md`.
+- **Pelas telas:** o roteiro de cada um dos 16 testes obrigatórios está em `docs/RELATORIO_DE_TESTES.md`, com os prints em `docs/prints/`.
 
 ## Problemas comuns
 
@@ -125,7 +126,8 @@ O `banco:recriar:demo` também cria 3 tutores e 5 animais (Rex, Mel, Luna, Piu e
 api_clinica/   API da clínica (Node): routes/ (rotas), services/ (regras), database/ (conexão e carga do banco)
 api_gov/       API do governo simulada (Python/FastAPI) e a documentação dela em docs_gov/
 database/      scripts SQL do banco da clínica (tabelas, espécies/raças e dados de exemplo)
-frontend/      telas (HTML, CSS, JS) e o servidorzinho da porta 8080
+frontend-angular/  telas em Angular (porta 8080); veja frontend-angular/README.md
+frontend/      telas antigas em HTML/JS (reserva: npm run front:antigo)
 postman/       coleções de teste
 docs/          enunciado, requisitos, MER, arquitetura, cronograma e os guias abaixo
 ```

@@ -1,10 +1,61 @@
 # Relatório de testes
 
+## Revisão final de 25/11/2026 (Caio, branch `dev` + correções)
+
+Ambiente: Node 22.23, Python 3.13, Chromium (Playwright). As duas APIs e o front novo em Angular
+rodando juntos em `localhost`, banco criado por `npm run banco:recriar:demo` e `governo.db` novo.
+Os prints abaixo foram tirados **nesta execução**, pelas telas novas, em `docs/prints/caio/`.
+
+### Execuções automáticas (Newman = Postman pela linha de comando)
+
+| Coleção | Resultado | Print |
+|---|---|---|
+| `Clinica_Vet_Bia` | 35 requisições, 71 verificações, 0 falhas | `Newman 1 - Clinica_Vet_Bia.png` |
+| `Clinica_Vet_Bia_Testes` | 10 requisições, 23 verificações, 0 falhas | `Newman 2 - Clinica_Vet_Bia_Testes.png` |
+| `Clinica_Vet_Tutores_Animais_Microchip_Governo` | 44 requisições, 84 verificações, 3 falhas: só as do CEP, porque o ambiente da revisão não tinha acesso ao ViaCEP. Na máquina com internet elas passam. | `Newman 3 - ...png` |
+
+### Os 16 testes obrigatórios, pelas telas
+
+| Nº | Teste | Situação | Prints (`docs/prints/caio/`) |
+|---|---|---|---|
+| 1 | Login de veterinário ativo e com senha confirmada | Passou | Teste 1 |
+| 2 | Bloqueio de veterinário inativo | Passou | Teste 2 |
+| 3 | Bloqueio de senha não confirmada | Passou | Teste 3 |
+| 4 | Rejeição de senha incorreta (e-mail certo, senha errada) | Passou | Teste 4 |
+| 5 | Cadastro de tutor e CPF duplicado | Passou | Teste 5, 5.1 |
+| 6 | CEP válido e CEP inexistente | **Só o caso "ViaCEP indisponível"** foi testado aqui (sem internet para o ViaCEP): a tela avisa e deixa preencher à mão. **Falta tirar na máquina com internet:** `01001-000` (preenche) e `99999-999` (não encontrado). | Teste 6, 6.1 |
+| 7 | Cadastro de animal com tutor e vínculo de microchip | Passou | Teste 7, 7.1, 7.2 |
+| 8 | Rejeição de microchip já utilizado | Passou (e chip com 14 números recusado) | Teste 8, 8.1 |
+| 9 | Registro de consulta e histórico | Passou | Teste 9, 9.1 |
+| 10 | Registro de vacina e próximas doses | Passou | Teste 10, 10.1 |
+| 11 | Cadastro e atualização do animal no governo | Passou: ao vincular o chip a clínica cadastra no governo; ao alterar o animal envia a atualização. Consulta direta no governo mostra os dados novos. | Teste 11, 11.1 a 11.4 |
+| 12 | Envio obrigatório da antirrábica | Passou (confirmada, com protocolo) | Teste 12, 12.1 |
+| 13 | Vacina não antirrábica não é enviada | Passou (coluna Governo: "não precisa") | Teste 13 |
+| 14 | Governo indisponível: vacina salva e envio pendente | Passou | Teste 14, 14.1, 14.2 |
+| 15 | Reenvio da pendência e confirmação | Passou | Teste 15, 15.1 |
+| 16 | Repetição com a mesma chave não duplica no governo | Passou: dois POST com a mesma chave devolvem `repetida: true` e o mesmo protocolo; no banco do governo há um registro por aplicação | Teste 16 |
+
+Também: `Responsivo - Painel no celular.png` e `Responsivo - Ficha do animal no celular.png` (tela de 390 px).
+
+### O que a revisão final encontrou e corrigiu
+
+| Encontrado | Feito |
+|---|---|
+| Commit de 17/11 adicionou controllers em **MySQL** (`config/db.js`, `controllers/`) e rotas em `clinicaRoutes.js`. O projeto usa SQLite: `GET /api/especies/1/racas` respondia 500 (`ECONNREFUSED 3306`). | Retirados os controllers, a dependência `mysql2` e as rotas MySQL. A rota de CEP ficou. |
+| A antirrábica ficava pendente até alguém clicar em Enviar ou até o reenvio automático (60 s). | Vínculo de chip, alteração do animal e antirrábica aplicada já tentam enviar ao governo na hora (RF24). Se falhar, fica pendente como antes. |
+| Coleção `Tutores_Animais_Microchip_Governo` com 2 falhas nos testes 14 e 15, porque a regra nova faz a vacina esperar o cadastro do animal no governo. | Coleção ajustada ao fluxo novo (testes 12, 14 e 15). |
+| Print da Bia do teste 4 usa o e-mail `ativo@clínica.test` (com acento), que testa e-mail errado e não senha errada. | Novo print do teste 4 com o e-mail certo e a senha errada. |
+| Front em HTML puro. | Front novo em Angular 21 (`frontend-angular/`), com tema de clínica veterinária e responsivo. O antigo ficou como reserva. |
+
+---
+
+## Revisão anterior (10/11/2026)
+
 Revisão de 10/11/2026 (Caio), atualizada depois do push do Cristiano (vínculo de microchip).
 Ambiente: Node 22.23, Python 3.10, Chromium. As duas APIs e as telas rodando juntas em `localhost`,
 com o banco criado por `npm run banco:recriar:demo`.
 
-## 1. Execuções automáticas
+### 1. Execuções automáticas
 
 | O que rodou | Resultado |
 |---|---|
@@ -16,7 +67,7 @@ com o banco criado por `npm run banco:recriar:demo`.
 
 A instalação da API do governo (`requirements.txt`) foi testada no Python 3.10, 3.12, 3.13 e 3.14.
 
-## 2. Os 16 testes obrigatórios (enunciado, seção 9)
+### 2. Os 16 testes obrigatórios (enunciado, seção 9)
 
 | Nº | Teste | Quem | Como mostrar | Situação |
 |---|---|---|---|---|
@@ -39,7 +90,7 @@ A instalação da API do governo (`requirements.txt`) foi testada no Python 3.10
 
 Para o relatório final: cada pessoa roda os próprios testes, tira print da tela (ou do Postman) e coloca aqui.
 
-## 3. O que a revisão encontrou e o que foi feito
+### 3. O que a revisão encontrou e o que foi feito
 
 | Parte | Encontrado | Feito |
 |---|---|---|

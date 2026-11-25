@@ -46,7 +46,7 @@ export class Login {
     } catch (e) {
       const erro = e as ErroApi;
       if (erro.codigo === 'SENHA_NAO_CONFIRMADA') {
-        this.mostrarErro(`${erro.message} Use "Confirmar senha" (o código aparece no terminal da API).`, 'alerta');
+        this.mostrarErro(`${erro.message} Clique em "Confirmar senha" abaixo (o código aparece no terminal da API).`, 'alerta');
       } else {
         this.mostrarErro(erro.message);
       }
