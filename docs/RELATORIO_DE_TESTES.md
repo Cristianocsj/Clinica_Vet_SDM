@@ -22,8 +22,8 @@ Os prints abaixo foram tirados **nesta execução**, pelas telas novas, em `docs
 | 2 | Bloqueio de veterinário inativo | Passou | Teste 2 |
 | 3 | Bloqueio de senha não confirmada | Passou | Teste 3 |
 | 4 | Rejeição de senha incorreta (e-mail certo, senha errada) | Passou | Teste 4 |
-| 5 | Cadastro de tutor e CPF duplicado | Passou | Teste 5, 5.1 |
-| 6 | CEP válido e CEP inexistente | Passou, na máquina com internet: `22733-040` preenche o endereço (HTTP 200, com código IBGE) e `99999-999` mostra "CEP não encontrado" (HTTP 400), deixando preencher à mão. No ambiente sem internet, a tela avisa que o ViaCEP está indisponível. | `docs/prints/joao/` Teste 6, 6.1, 6.2; `caio/` Teste 6, 6.1 (indisponível) |
+| 5 | Cadastro de tutor e CPF duplicado | Passou (telas e Postman: 201 e 409 `CPF_JA_CADASTRADO`) | Teste 5, 5.1; `docs/prints/joao/` Teste 5, 5.1 (Postman) |
+| 6 | CEP válido e CEP inexistente | Passou, na máquina com internet: `22733-040` preenche o endereço (HTTP 200, com código IBGE) e `99999-999` mostra "CEP não encontrado" (HTTP 400), deixando preencher à mão. No ambiente sem internet, a tela avisa que o ViaCEP está indisponível. | `docs/prints/joao/` Teste 6, 6.1, 6.2 e, no Postman, 6.3 (`01001000`, 200) e 6.4 (`99999999`, 400); `caio/` Teste 6, 6.1 (indisponível) |
 | 7 | Cadastro de animal com tutor e vínculo de microchip | Passou | Teste 7, 7.1, 7.2 |
 | 8 | Rejeição de microchip já utilizado | Passou (e chip com 14 números recusado) | Teste 8, 8.1 |
 | 9 | Registro de consulta e histórico | Passou | Teste 9, 9.1 |
