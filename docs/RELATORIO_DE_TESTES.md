@@ -1,5 +1,11 @@
 # Relatório de testes
 
+## Alteração pedida pelo professor (26/11/2026, Bia)
+
+| Teste | Situação | Print (`docs/prints/bia/`) |
+|---|---|---|
+| Flag "Cadastro manual? (S/N)" no endereço, feita **a pedido do professor**: coluna `ENDE_FL_CADASTRO_MANUAL` em `VET_ENDERECO`, campo `endereco.cadastroManual` na API de tutores e seletor/coluna na tela de Tutores (N quando o CEP vem do ViaCEP, S quando digitado à mão). Coleção `Clinica_Vet_Cadastro_Manual_Endereco` pelo Postman CLI. | Passou: 14 requisições, 29 verificações, 0 falhas | Teste 11 - Flag cadastro manual do endereço (Postman CLI) |
+
 ## Revisão final de 25/11/2026 (Caio, branch `dev` + correções)
 
 Ambiente: Node 22.23, Python 3.13, Chromium (Playwright). As duas APIs e o front novo em Angular
