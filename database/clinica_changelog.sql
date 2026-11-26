@@ -80,8 +80,10 @@ create table if not exists VET_ENDERECO
    ENDE_NM_CIDADE           	VARCHAR(100)         	 NOT NULL,
    ENDE_SG_UF               	CHAR(2)              	 NOT NULL,
    ENDE_CD_IBGE             	CHAR(7),
+   ENDE_FL_CADASTRO_MANUAL  	CHAR(1)              	 default 'N' not null,
    constraint ENDE_CK_01 check (length(ENDE_NR_CEP) = 8 and ENDE_NR_CEP not glob '*[^0-9]*'),
-   constraint ENDE_CK_02 check (length(ENDE_SG_UF) = 2)
+   constraint ENDE_CK_02 check (length(ENDE_SG_UF) = 2),
+   constraint ENDE_CK_03 check (ENDE_FL_CADASTRO_MANUAL in ('S','N'))
 );
 
 --ROLLBACK DROP TABLE VET_ENDERECO;
@@ -95,6 +97,7 @@ create table if not exists VET_ENDERECO
 --comment on column VET_ENDERECO.ENDE_NM_CIDADE          is 'Cidade do endereço';
 --comment on column VET_ENDERECO.ENDE_SG_UF              is 'Sigla da UF do endereço';
 --comment on column VET_ENDERECO.ENDE_CD_IBGE            is 'Código IBGE do município (quando disponível)';
+--comment on column VET_ENDERECO.ENDE_FL_CADASTRO_MANUAL is 'Indicador de cadastro manual do endereço.(S - Sim, digitado manualmente/N - Não, preenchido pelo ViaCEP)';
 
 
 --changeset bia.portela:20261108-004

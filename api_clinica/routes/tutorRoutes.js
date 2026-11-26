@@ -24,7 +24,7 @@ router.get('/tutores/:id', (req, res) => {
 
 // POST /api/tutores
 // Corpo: { nome, cpf, telefone?, email?, dataNascimento?,
-//          endereco: { cep, logradouro?, numero?, complemento?, bairro?, cidade, uf, codigoIbge? } }
+//          endereco: { cep, logradouro?, numero?, complemento?, bairro?, cidade, uf, codigoIbge?, cadastroManual? ('S'/'N', padrão 'N') } }
 router.post('/tutores', (req, res) => {
     try {
         return res.status(201).json(tutorService.criar(req.body));
