@@ -28,7 +28,8 @@ const COLUNAS = `
     e.ENDE_NM_BAIRRO      AS bairro,
     e.ENDE_NM_CIDADE      AS cidade,
     e.ENDE_SG_UF          AS uf,
-    e.ENDE_CD_IBGE        AS codigoIbge`;
+    e.ENDE_CD_IBGE        AS codigoIbge,
+    e.ENDE_FL_CADASTRO_MANUAL AS cadastroManual`;
 
 const JUNCOES = `
       FROM VET_TUTOR t
@@ -65,8 +66,8 @@ const sqlAnimaisDoTutor = db.prepare(`
 const sqlInserirEndereco = db.prepare(`
     INSERT INTO VET_ENDERECO
         (ENDE_NR_CEP, ENDE_DS_LOGRADOURO, ENDE_NR_ENDERECO, ENDE_DS_COMPLEMENTO,
-         ENDE_NM_BAIRRO, ENDE_NM_CIDADE, ENDE_SG_UF, ENDE_CD_IBGE)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ENDE_NM_BAIRRO, ENDE_NM_CIDADE, ENDE_SG_UF, ENDE_CD_IBGE, ENDE_FL_CADASTRO_MANUAL)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const sqlAlterarEndereco = db.prepare(`
@@ -78,7 +79,8 @@ const sqlAlterarEndereco = db.prepare(`
            ENDE_NM_BAIRRO      = ?,
            ENDE_NM_CIDADE      = ?,
            ENDE_SG_UF          = ?,
-           ENDE_CD_IBGE        = ?
+           ENDE_CD_IBGE        = ?,
+           ENDE_FL_CADASTRO_MANUAL = ?
      WHERE ENDE_ID_ENDERECO = ?
 `);
 
@@ -134,6 +136,9 @@ function validarEndereco(erros, end) {
         uf: typeof end.uf === 'string' ? end.uf.trim().toUpperCase() : '',
         codigoIbge: end.codigoIbge === undefined || end.codigoIbge === null || end.codigoIbge === ''
             ? null : String(end.codigoIbge).trim(),
+        // S = endereço digitado à mão; N = preenchido pelo ViaCEP (padrão quando não enviado)
+        cadastroManual: end.cadastroManual === undefined || end.cadastroManual === null || end.cadastroManual === ''
+            ? 'N' : String(end.cadastroManual).trim().toUpperCase(),
     };
     if (dados.cep.length !== 8) erros.push('endereco.cep: deve ter 8 números');
     if (!dados.cidade) erros.push('endereco.cidade: obrigatória');
@@ -141,6 +146,7 @@ function validarEndereco(erros, end) {
     if (dados.codigoIbge !== null && !/^\d{7}$/.test(dados.codigoIbge)) {
         erros.push('endereco.codigoIbge: deve ter 7 números');
     }
+    if (!['S', 'N'].includes(dados.cadastroManual)) erros.push('endereco.cadastroManual: use S ou N');
     return dados;
 }
 
@@ -190,10 +196,10 @@ function lerId(id) {
 }
 
 function formatar(linha) {
-    const { enderecoId, cep, logradouro, numero, complemento, bairro, cidade, uf, codigoIbge, ...tutor } = linha;
+    const { enderecoId, cep, logradouro, numero, complemento, bairro, cidade, uf, codigoIbge, cadastroManual, ...tutor } = linha;
     return {
         ...tutor,
-        endereco: { id: enderecoId, cep, logradouro, numero, complemento, bairro, cidade, uf, codigoIbge },
+        endereco: { id: enderecoId, cep, logradouro, numero, complemento, bairro, cidade, uf, codigoIbge, cadastroManual },
     };
 }
 
@@ -236,7 +242,7 @@ function criar(corpo) {
 
     const id = transacao(() => {
         const e = sqlInserirEndereco.run(endereco.cep, endereco.logradouro, endereco.numero, endereco.complemento,
-            endereco.bairro, endereco.cidade, endereco.uf, endereco.codigoIbge);
+            endereco.bairro, endereco.cidade, endereco.uf, endereco.codigoIbge, endereco.cadastroManual);
         const t = sqlInserir.run(Number(e.lastInsertRowid), dados.nome, dados.cpf, dados.telefone,
             dados.email, dados.dataNascimento);
         return Number(t.lastInsertRowid);
@@ -269,7 +275,8 @@ function alterar(id, corpo) {
     transacao(() => {
         sqlAlterar.run(dados.nome, dados.cpf, dados.telefone, dados.email, dados.dataNascimento, atual.id);
         sqlAlterarEndereco.run(endereco.cep, endereco.logradouro, endereco.numero, endereco.complemento,
-            endereco.bairro, endereco.cidade, endereco.uf, endereco.codigoIbge, atual.endereco.id);
+            endereco.bairro, endereco.cidade, endereco.uf, endereco.codigoIbge, endereco.cadastroManual,
+            atual.endereco.id);
     });
     return buscar(atual.id);
 }

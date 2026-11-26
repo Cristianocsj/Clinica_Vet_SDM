@@ -14,6 +14,8 @@ function tutorVazio() {
   return {
     nome: '', cpf: '', dataNascimento: '', telefone: '', email: '',
     cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '', codigoIbge: '',
+    // S = endereço digitado à mão; N = preenchido pelo ViaCEP
+    cadastroManual: 'S',
   };
 }
 
@@ -74,6 +76,7 @@ export class Tutores implements OnInit {
         telefone: tutor.telefone || '', email: tutor.email || '',
         cep: formatarCep(e.cep), logradouro: e.logradouro || '', numero: e.numero || '', complemento: e.complemento || '',
         bairro: e.bairro || '', cidade: e.cidade || '', uf: e.uf || '', codigoIbge: e.codigoIbge || '',
+        cadastroManual: e.cadastroManual || 'N',
       };
     }
     this.avisoCep = 'Digite o CEP e clique em Buscar (ViaCEP).';
@@ -100,11 +103,13 @@ export class Tutores implements OnInit {
       this.form.cidade = end.localidade || '';
       this.form.uf = end.uf || '';
       this.form.codigoIbge = end.ibge || '';
+      this.form.cadastroManual = 'N';
       this.avisoCep = 'Endereço encontrado! Complete o número e o complemento.';
       this.avisoCepTipo = 'ok';
     } catch (e: any) {
       // CEP inexistente, timeout ou ViaCEP fora do ar: a pessoa preenche à mão
       this.form.codigoIbge = '';
+      this.form.cadastroManual = 'S';
       this.avisoCep = /manual|à mão/i.test(e.message) ? e.message : `${e.message} Você pode preencher o endereço à mão.`;
       this.avisoCepTipo = 'erro';
     } finally {
@@ -139,6 +144,7 @@ export class Tutores implements OnInit {
         cidade: d.cidade.trim(),
         uf: d.uf,
         codigoIbge: vazioParaNull(d.codigoIbge),
+        cadastroManual: d.cadastroManual,
       },
     };
     this.salvando = true;

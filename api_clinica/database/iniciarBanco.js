@@ -46,6 +46,13 @@ if (!colunasIntegracao.some((coluna) => coluna.name === 'INGO_CD_MICROCHIP_ANTER
     db.exec('ALTER TABLE VET_INTEGRACAO_GOV ADD COLUMN INGO_CD_MICROCHIP_ANTERIOR CHAR(15)');
 }
 
+// Migração: flag de cadastro manual do endereço (S/N) em bancos já existentes.
+const colunasEndereco = db.prepare('PRAGMA table_info(VET_ENDERECO)').all();
+if (!colunasEndereco.some((coluna) => coluna.name === 'ENDE_FL_CADASTRO_MANUAL')) {
+    db.exec(`ALTER TABLE VET_ENDERECO ADD COLUMN ENDE_FL_CADASTRO_MANUAL CHAR(1) DEFAULT 'N' NOT NULL
+             CONSTRAINT ENDE_CK_03 CHECK (ENDE_FL_CADASTRO_MANUAL IN ('S','N'))`);
+}
+
 // 2. Dados iniciais
 const qtdEspecies = db.prepare('SELECT COUNT(*) AS qtd FROM VET_ESPECIE').get().qtd;
 if (qtdEspecies === 0) {
