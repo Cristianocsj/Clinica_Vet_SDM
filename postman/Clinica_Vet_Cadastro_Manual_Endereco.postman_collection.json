@@ -1,0 +1,690 @@
+{
+  "info": {
+    "name": "Clinica_Vet_Cadastro_Manual_Endereco",
+    "description": "Testes da flag ENDE_FL_CADASTRO_MANUAL (Cadastro manual? S/N) do endereço, pela API de tutores.\nPrecisa da API rodando em localhost:3000 (npm start) e do banco atualizado (npm run banco).\nCada execução cria tutores novos (CPF gerado) e no fim os inativa.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Login (pega o token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('token', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"ativo@clinica.test\",\n  \"senha\": \"{{senhaTeste}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "1 - Cadastro sem a flag fica 'N' (padrão: veio do ViaCEP)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Gera um CPF válido e novo a cada execução (o CPF não pode repetir no banco)",
+              "function gerarCpf() {",
+              "  const n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));",
+              "  const dv = (base) => { const s = base.reduce((t, d, i) => t + d * (base.length + 1 - i), 0); const r = (s * 10) % 11; return r === 10 ? 0 : r; };",
+              "  n.push(dv(n)); n.push(dv(n));",
+              "  return n.join('');",
+              "}",
+              "pm.collectionVariables.set('cpf', gerarCpf());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test(\"cadastroManual = 'N'\", () => pm.expect(pm.response.json().endereco.cadastroManual).to.eql('N'));",
+              "pm.collectionVariables.set('tutorId', pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Teste Flag Padrão\",\n  \"cpf\": \"{{cpf}}\",\n  \"endereco\": {\n    \"cep\": \"01001000\",\n    \"logradouro\": \"Praça da Sé\",\n    \"numero\": \"1\",\n    \"bairro\": \"Sé\",\n    \"cidade\": \"São Paulo\",\n    \"uf\": \"SP\",\n    \"codigoIbge\": \"3550308\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "2 - Cadastro com 'S' (endereço digitado à mão)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Gera um CPF válido e novo a cada execução (o CPF não pode repetir no banco)",
+              "function gerarCpf() {",
+              "  const n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));",
+              "  const dv = (base) => { const s = base.reduce((t, d, i) => t + d * (base.length + 1 - i), 0); const r = (s * 10) % 11; return r === 10 ? 0 : r; };",
+              "  n.push(dv(n)); n.push(dv(n));",
+              "  return n.join('');",
+              "}",
+              "pm.collectionVariables.set('cpf', gerarCpf());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test(\"cadastroManual = 'S'\", () => pm.expect(pm.response.json().endereco.cadastroManual).to.eql('S'));",
+              "pm.collectionVariables.set('tutorManualId', pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Teste Flag Manual\",\n  \"cpf\": \"{{cpf}}\",\n  \"endereco\": {\n    \"cep\": \"99999999\",\n    \"cidade\": \"Cidade Digitada\",\n    \"uf\": \"MG\",\n    \"cadastroManual\": \"S\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "3 - Aceita minúscula ('n' vira 'N')",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Gera um CPF válido e novo a cada execução (o CPF não pode repetir no banco)",
+              "function gerarCpf() {",
+              "  const n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));",
+              "  const dv = (base) => { const s = base.reduce((t, d, i) => t + d * (base.length + 1 - i), 0); const r = (s * 10) % 11; return r === 10 ? 0 : r; };",
+              "  n.push(dv(n)); n.push(dv(n));",
+              "  return n.join('');",
+              "}",
+              "pm.collectionVariables.set('cpf', gerarCpf());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test(\"cadastroManual = 'N'\", () => pm.expect(pm.response.json().endereco.cadastroManual).to.eql('N'));",
+              "pm.collectionVariables.set('tutorMinusculaId', pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Teste Flag Minúscula\",\n  \"cpf\": \"{{cpf}}\",\n  \"endereco\": {\n    \"cep\": \"01001000\",\n    \"logradouro\": \"Praça da Sé\",\n    \"numero\": \"1\",\n    \"bairro\": \"Sé\",\n    \"cidade\": \"São Paulo\",\n    \"uf\": \"SP\",\n    \"codigoIbge\": \"3550308\",\n    \"cadastroManual\": \"n\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "4 - Cadastro com valor inválido ('X') é recusado",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Gera um CPF válido e novo a cada execução (o CPF não pode repetir no banco)",
+              "function gerarCpf() {",
+              "  const n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));",
+              "  const dv = (base) => { const s = base.reduce((t, d, i) => t + d * (base.length + 1 - i), 0); const r = (s * 10) % 11; return r === 10 ? 0 : r; };",
+              "  n.push(dv(n)); n.push(dv(n));",
+              "  return n.join('');",
+              "}",
+              "pm.collectionVariables.set('cpf', gerarCpf());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const corpo = pm.response.json();",
+              "pm.test('Código DADOS_INVALIDOS', () => pm.expect(corpo.codigo).to.eql('DADOS_INVALIDOS'));",
+              "pm.test('Mensagem aponta endereco.cadastroManual', () => pm.expect(corpo.mensagem).to.include('endereco.cadastroManual'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Teste Flag Inválida\",\n  \"cpf\": \"{{cpf}}\",\n  \"endereco\": {\n    \"cep\": \"01001000\",\n    \"logradouro\": \"Praça da Sé\",\n    \"numero\": \"1\",\n    \"bairro\": \"Sé\",\n    \"cidade\": \"São Paulo\",\n    \"uf\": \"SP\",\n    \"codigoIbge\": \"3550308\",\n    \"cadastroManual\": \"X\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "5 - Alterar a flag de 'N' para 'S'",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test(\"cadastroManual = 'S'\", () => pm.expect(pm.response.json().endereco.cadastroManual).to.eql('S'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores/{{tutorId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores",
+            "{{tutorId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"endereco\": {\n    \"cadastroManual\": \"S\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "6 - Alterar outro campo mantém a flag",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test(\"cadastroManual = 'S'\", () => pm.expect(pm.response.json().endereco.cadastroManual).to.eql('S'));",
+              "pm.test('Nome mudou', () => pm.expect(pm.response.json().nome).to.eql('Teste Flag Padrão Editado'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores/{{tutorId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores",
+            "{{tutorId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Teste Flag Padrão Editado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "7 - Alterar o CEP sem mandar a flag mantém a flag",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test(\"cadastroManual = 'S'\", () => pm.expect(pm.response.json().endereco.cadastroManual).to.eql('S'));",
+              "pm.test('CEP mudou', () => pm.expect(pm.response.json().endereco.cep).to.eql('20040002'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores/{{tutorId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores",
+            "{{tutorId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"endereco\": {\n    \"cep\": \"20040002\",\n    \"cidade\": \"Rio de Janeiro\",\n    \"uf\": \"RJ\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "8 - Alterar com valor inválido ('sim') é recusado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const corpo = pm.response.json();",
+              "pm.test('Código DADOS_INVALIDOS', () => pm.expect(corpo.codigo).to.eql('DADOS_INVALIDOS'));",
+              "pm.test('Mensagem aponta endereco.cadastroManual', () => pm.expect(corpo.mensagem).to.include('endereco.cadastroManual'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores/{{tutorId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores",
+            "{{tutorId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"endereco\": {\n    \"cadastroManual\": \"sim\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "9 - Buscar o tutor devolve a flag",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test(\"cadastroManual = 'S'\", () => pm.expect(pm.response.json().endereco.cadastroManual).to.eql('S'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores/{{tutorId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores",
+            "{{tutorId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10 - Listar tutores devolve a flag em todos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const lista = pm.response.json();",
+              "pm.test('Todos os endereços têm cadastroManual S ou N', () => lista.forEach((t) => pm.expect(['S', 'N']).to.include(t.endereco.cadastroManual)));",
+              "pm.test('O tutor do teste aparece com S', () => pm.expect(lista.find((t) => t.id === Number(pm.collectionVariables.get('tutorId'))).endereco.cadastroManual).to.eql('S'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Limpeza - inativa o tutor 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores/{{tutorId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores",
+            "{{tutorId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Limpeza - inativa o tutor 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores/{{tutorManualId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores",
+            "{{tutorManualId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Limpeza - inativa o tutor 3",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tutores/{{tutorMinusculaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tutores",
+            "{{tutorMinusculaId}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "senhaTeste",
+      "value": "Senha@123"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "cpf",
+      "value": ""
+    },
+    {
+      "key": "tutorId",
+      "value": ""
+    },
+    {
+      "key": "tutorManualId",
+      "value": ""
+    },
+    {
+      "key": "tutorMinusculaId",
+      "value": ""
+    }
+  ]
+}
